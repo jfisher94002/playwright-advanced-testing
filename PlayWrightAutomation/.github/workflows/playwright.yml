@@ -4,6 +4,32 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      browser:
+        description: 'Browser to test with'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - chromium
+          - firefox
+          - webkit
+      environment:
+        description: 'Test environment'
+        required: false
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+          - development
+      run_ai_analysis:
+        description: 'AI analysis runs by default (this option is informational)'
+        required: false
+        default: true
+        type: boolean
 
 env:
   NODE_VERSION: '20'
@@ -15,6 +41,16 @@ jobs:
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
+      
+    - name: 📋 Display Manual Run Configuration
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        echo "🎯 Manual Test Run Configuration:"
+        echo "Browser: ${{ github.event.inputs.browser || 'all' }}"
+        echo "Environment: ${{ github.event.inputs.environment || 'staging' }}"
+        echo "AI Analysis: Always enabled"
+        echo "Triggered by: ${{ github.actor }}"
+        echo "=================================="
       
     - name: 🔧 Setup Node.js
       uses: actions/setup-node@v4
@@ -43,8 +79,17 @@ jobs:
       continue-on-error: true
       
     - name: 🧪 Run Playwright tests
-      run: npx playwright test
+      run: |
+        if [ "${{ github.event.inputs.browser }}" = "all" ] || [ "${{ github.event.inputs.browser }}" = "" ]; then
+          echo "Running tests on all browsers..."
+          npx playwright test
+        else
+          echo "Running tests on ${{ github.event.inputs.browser }} browser..."
+          npx playwright test --project=${{ github.event.inputs.browser }}
+        fi
       continue-on-error: true
+      env:
+        TEST_ENV: ${{ github.event.inputs.environment || 'staging' }}
       
     - name: 📊 Generate CTRF Summary
       if: always()
@@ -56,8 +101,8 @@ jobs:
         fi
       continue-on-error: true
       
-    - name: 🤖 Generate AI Analysis (on failures)
-      if: failure()
+    - name: 🤖 Generate AI Analysis (always runs)
+      if: always()
       run: |
         if [ -f "ctrf/ctrf-report.json" ]; then
           echo "Generating AI analysis..."
@@ -71,7 +116,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: playwright-report
+        name: playwright-report-${{ github.event.inputs.browser || 'all' }}-${{ github.event.inputs.environment || 'auto' }}
         path: playwright-report/
         retention-days: 30
         
@@ -79,7 +124,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: ctrf-report
+        name: ctrf-report-${{ github.event.inputs.browser || 'all' }}-${{ github.event.inputs.environment || 'auto' }}
         path: ctrf/
         retention-days: 30
         
@@ -87,7 +132,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: ai-analysis-report
+        name: ai-analysis-report-${{ github.event.inputs.browser || 'all' }}-${{ github.event.inputs.environment || 'auto' }}
         path: |
           ai-reports/
           *.html
