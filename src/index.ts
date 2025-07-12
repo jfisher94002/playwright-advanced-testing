@@ -1,4 +1,18 @@
 #!/usr/bin/env node
+/**
+ * AI Test Reporter - Intelligent Test Failure Analysis
+ * 
+ * This code is derived from the AI Test Reporter project:
+ * https://github.com/ctrf-io/ai-test-reporter
+ * 
+ * Original Author: Matthew Thomas (https://github.com/ma11hewthomas)
+ * Original License: MIT License
+ * Copyright (c) 2024 Matthew Thomas
+ * 
+ * Modifications: Integrated with Ollama local AI and enhanced for this project
+ * License: MIT License (maintaining original license terms)
+ */
+
 import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
 import { openAIFailedTestSummary } from './models/openai';
