@@ -1,9 +1,9 @@
 name: 🎭 Playwright Tests with CTRF & AI Reporting
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
 
 env:
   NODE_VERSION: '20'

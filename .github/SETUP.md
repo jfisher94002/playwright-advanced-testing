@@ -242,10 +242,10 @@ Add these secrets in **Settings > Secrets and variables > Actions**:
    - ✅ Require branches to be up to date before merging
    - ✅ Require status checks to pass before merging
 3. Enable:
-2. Add rule for `master` branch
+2. Add rule for `main` branch
 1. Go to **Settings > Branches**
 
-Set up branch protection for `master` branch:
+Set up branch protection for `main` branch:
 
 ## 🛡️ Branch Protection Rules
 
