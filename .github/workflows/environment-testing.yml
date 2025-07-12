@@ -1,0 +1,230 @@
+name: 🌍 Environment Testing
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      test_type:
+        description: 'Type of tests to run'
+        required: true
+        type: choice
+        options:
+          - smoke
+          - regression
+          - e2e
+          - all
+      browsers:
+        description: 'Browsers to test'
+        required: true
+        type: choice
+        options:
+          - chromium
+          - firefox
+          - webkit
+          - all
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  environment-test:
+    name: 🧪 Test on ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: ${{ fromJson(github.event.inputs.browsers == 'all' && '["chromium", "firefox", "webkit"]' || format('["{0}"]', github.event.inputs.browsers)) }}
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🎭 Install Playwright Browsers
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: 🌍 Set environment variables
+        run: |
+          echo "TEST_ENV=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+          echo "BROWSER=${{ matrix.browser }}" >> $GITHUB_ENV
+          
+          # Set environment-specific variables
+          case "${{ github.event.inputs.environment }}" in
+            "development")
+              echo "BASE_URL=https://dev.example.com" >> $GITHUB_ENV
+              echo "API_URL=https://api-dev.example.com" >> $GITHUB_ENV
+              ;;
+            "staging")
+              echo "BASE_URL=https://staging.example.com" >> $GITHUB_ENV
+              echo "API_URL=https://api-staging.example.com" >> $GITHUB_ENV
+              ;;
+            "production")
+              echo "BASE_URL=https://example.com" >> $GITHUB_ENV
+              echo "API_URL=https://api.example.com" >> $GITHUB_ENV
+              ;;
+          esac
+
+      - name: 🧪 Run environment tests
+        run: |
+          case "${{ github.event.inputs.test_type }}" in
+            "smoke")
+              npx playwright test --project=${{ matrix.browser }} --grep="@smoke"
+              ;;
+            "regression")
+              npx playwright test --project=${{ matrix.browser }} --grep="@regression"
+              ;;
+            "e2e")
+              npx playwright test --project=${{ matrix.browser }} --grep="@e2e"
+              ;;
+            "all")
+              npx playwright test --project=${{ matrix.browser }}
+              ;;
+          esac
+        env:
+          CI: true
+
+      - name: 📊 Generate environment report
+        if: always()
+        run: |
+          mkdir -p reports
+          
+          echo "# 🌍 Environment Test Report" > reports/environment-report.md
+          echo "Environment: ${{ github.event.inputs.environment }}" >> reports/environment-report.md
+          echo "Browser: ${{ matrix.browser }}" >> reports/environment-report.md
+          echo "Test Type: ${{ github.event.inputs.test_type }}" >> reports/environment-report.md
+          echo "Date: $(date)" >> reports/environment-report.md
+          echo "" >> reports/environment-report.md
+          
+          if [ -f "ctrf/ctrf-report.json" ]; then
+            npm run ctrf:summary >> reports/environment-report.md
+          fi
+
+      - name: 🤖 Generate AI analysis for failures
+        if: failure()
+        run: |
+          npm run ai:analyze
+        continue-on-error: true
+
+      - name: 📸 Capture environment screenshots
+        if: always()
+        run: |
+          mkdir -p screenshots
+          # Screenshots are already captured by Playwright on failures
+          # This step ensures we have a proper directory structure
+
+      - name: 📋 Upload environment test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: env-test-${{ github.event.inputs.environment }}-${{ matrix.browser }}-${{ github.event.inputs.test_type }}
+          path: |
+            playwright-report/
+            ctrf/
+            ai-reports/
+            reports/
+            test-results/
+            screenshots/
+          retention-days: 30
+
+      - name: 📊 Post results to PR (if applicable)
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            try {
+              if (fs.existsSync('reports/environment-report.md')) {
+                const report = fs.readFileSync('reports/environment-report.md', 'utf8');
+                
+                const comment = `
+            ## 🌍 Environment Test Results
+            
+            **Environment:** ${{ github.event.inputs.environment }}
+            **Browser:** ${{ matrix.browser }}
+            **Test Type:** ${{ github.event.inputs.test_type }}
+            
+            <details>
+            <summary>📊 Detailed Results</summary>
+            
+            ${report}
+            
+            </details>
+            `;
+                
+                github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: comment
+                });
+              }
+            } catch (error) {
+              console.log('Could not post PR comment:', error);
+            }
+
+  environment-health-check:
+    name: 🏥 Environment Health Check
+    runs-on: ubuntu-latest
+    if: github.event.inputs.environment != 'development'
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🏥 Check environment health
+        run: |
+          echo "# 🏥 Environment Health Check" > health-report.md
+          echo "Environment: ${{ github.event.inputs.environment }}" >> health-report.md
+          echo "Date: $(date)" >> health-report.md
+          echo "" >> health-report.md
+          
+          # Set base URL based on environment
+          case "${{ github.event.inputs.environment }}" in
+            "staging")
+              BASE_URL="https://staging.example.com"
+              API_URL="https://api-staging.example.com"
+              ;;
+            "production")
+              BASE_URL="https://example.com"
+              API_URL="https://api.example.com"
+              ;;
+          esac
+          
+          # Basic health checks
+          echo "## 🌐 Connectivity Tests" >> health-report.md
+          
+          if curl -f -s "$BASE_URL" > /dev/null; then
+            echo "✅ Website is accessible" >> health-report.md
+          else
+            echo "❌ Website is not accessible" >> health-report.md
+          fi
+          
+          if curl -f -s "$API_URL/health" > /dev/null; then
+            echo "✅ API is accessible" >> health-report.md
+          else
+            echo "❌ API is not accessible" >> health-report.md
+          fi
+
+      - name: 📋 Upload health check results
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-check-${{ github.event.inputs.environment }}
+          path: health-report.md
+          retention-days: 7

@@ -1,0 +1,162 @@
+name: 🔄 Dependency Updates
+
+on:
+  schedule:
+    # Run every Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  check-updates:
+    name: 🔍 Check for Updates
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔍 Check for outdated packages
+        run: |
+          npm outdated --json > outdated.json || true
+          echo "Outdated packages:"
+          cat outdated.json
+
+      - name: 📊 Generate update report
+        run: |
+          echo "# 📦 Dependency Update Report" > update-report.md
+          echo "Generated on: $(date)" >> update-report.md
+          echo "" >> update-report.md
+          
+          if [ -s outdated.json ]; then
+            echo "## 📋 Outdated Packages" >> update-report.md
+            echo "" >> update-report.md
+            node -e "
+              const data = require('./outdated.json');
+              Object.entries(data).forEach(([pkg, info]) => {
+                console.log(\`- **\${pkg}**: \${info.current} → \${info.latest}\`);
+              });
+            " >> update-report.md
+          else
+            echo "✅ All packages are up to date!" >> update-report.md
+          fi
+
+      - name: 🔒 Security audit
+        run: |
+          echo "" >> update-report.md
+          echo "## 🔒 Security Audit" >> update-report.md
+          echo "" >> update-report.md
+          npm audit --json > audit.json || true
+          
+          if grep -q '"vulnerabilities":{}' audit.json; then
+            echo "✅ No security vulnerabilities found!" >> update-report.md
+          else
+            echo "⚠️ Security vulnerabilities detected. Please review." >> update-report.md
+          fi
+
+      - name: 📤 Create update issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Read the update report
+            const report = fs.readFileSync('update-report.md', 'utf8');
+            
+            // Check if there are actually updates needed
+            const outdated = fs.readFileSync('outdated.json', 'utf8');
+            const hasUpdates = outdated.trim() !== '{}' && outdated.trim() !== '';
+            
+            if (hasUpdates) {
+              // Create an issue for dependency updates
+              const issue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `🔄 Weekly Dependency Updates - ${new Date().toISOString().split('T')[0]}`,
+                body: report + '\n\n---\n\n**Action Required:** Please review and update the dependencies listed above.',
+                labels: ['dependencies', 'maintenance', 'automated']
+              });
+              
+              console.log(`Created issue #${issue.data.number}`);
+            } else {
+              console.log('No updates needed, skipping issue creation');
+            }
+
+      - name: 📋 Upload update artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-${{ github.run_number }}
+          path: |
+            update-report.md
+            outdated.json
+            audit.json
+          retention-days: 30
+
+  test-updates:
+    name: 🧪 Test with Latest Dependencies
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 📦 Update to latest dependencies
+        run: |
+          # Create a backup of package-lock.json
+          cp package-lock.json package-lock.json.backup
+          
+          # Update all dependencies to latest
+          npm update
+          
+          # Show what changed
+          echo "## Dependency Changes" > changes.md
+          git diff package-lock.json.backup package-lock.json >> changes.md || true
+
+      - name: 🧪 Test with updated dependencies
+        run: |
+          npm ci
+          npx playwright install --with-deps
+          npx playwright test --project=chromium
+        continue-on-error: true
+
+      - name: 📊 Generate compatibility report
+        if: always()
+        run: |
+          echo "# 🧪 Dependency Compatibility Test" > compatibility-report.md
+          echo "Date: $(date)" >> compatibility-report.md
+          echo "" >> compatibility-report.md
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ All tests passed with latest dependencies!" >> compatibility-report.md
+          else
+            echo "❌ Some tests failed with latest dependencies. Review required." >> compatibility-report.md
+          fi
+
+      - name: 📋 Upload compatibility test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compatibility-test-${{ github.run_number }}
+          path: |
+            compatibility-report.md
+            changes.md
+            playwright-report/
+            test-results/
+          retention-days: 14

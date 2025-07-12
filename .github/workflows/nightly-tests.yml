@@ -1,0 +1,169 @@
+name: 🌙 Nightly Comprehensive Tests
+
+on:
+  schedule:
+    # Run every night at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      full_suite:
+        description: 'Run full test suite including stress tests'
+        required: true
+        default: true
+        type: boolean
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  comprehensive-test:
+    name: 🔍 Comprehensive Test Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+        environment: [staging, production]
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🎭 Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: 🧪 Run Full Test Suite
+        run: |
+          npx playwright test --project=${{ matrix.browser }} --grep="@smoke|@regression|@critical"
+        env:
+          TEST_ENV: ${{ matrix.environment }}
+          FULL_SUITE: ${{ github.event.inputs.full_suite || 'true' }}
+
+      - name: 📊 Generate Comprehensive Reports
+        if: always()
+        run: |
+          npm run ctrf:summary
+          npm run ai:analyze
+        continue-on-error: true
+
+      - name: 📧 Send Failure Notification
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `🚨 Nightly Test Failure - ${{ matrix.browser }} on ${{ matrix.environment }}`;
+            const body = `
+            Nightly test run failed for:
+            - Browser: ${{ matrix.browser }}
+            - Environment: ${{ matrix.environment }}
+            - Run: ${{ github.run_id }}
+            
+            Please check the logs and reports for details.
+            `;
+            
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['bug', 'nightly-test', 'automation']
+            });
+
+      - name: 📋 Upload Comprehensive Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-reports-${{ matrix.browser }}-${{ matrix.environment }}
+          path: |
+            playwright-report/
+            ctrf/
+            ai-reports/
+            test-results/
+          retention-days: 7
+
+  performance-test:
+    name: ⚡ Performance Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🎭 Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: ⚡ Run Performance Tests
+        run: |
+          npx playwright test --project=chromium --grep="@performance"
+        continue-on-error: true
+
+      - name: 📈 Upload Performance Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-reports
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+  weekly-report:
+    name: 📊 Weekly Test Report
+    runs-on: ubuntu-latest
+    needs: [comprehensive-test, performance-test]
+    if: always() && github.event.schedule == '0 2 * * 0'  # Only on Sunday
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📥 Download all reports
+        uses: actions/download-artifact@v4
+        with:
+          path: weekly-reports/
+
+      - name: 📊 Generate Weekly Summary
+        run: |
+          echo "# 📊 Weekly Test Summary" > weekly-summary.md
+          echo "Generated on: $(date)" >> weekly-summary.md
+          echo "" >> weekly-summary.md
+          
+          # Count test files and add summary
+          find weekly-reports -name "*.json" | wc -l | xargs echo "Total test report files:" >> weekly-summary.md
+          
+          # Add more detailed analysis here if needed
+        
+      - name: 📧 Create Weekly Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('weekly-summary.md', 'utf8');
+            
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `📊 Weekly Test Report - Week of ${new Date().toISOString().split('T')[0]}`,
+              body: summary,
+              labels: ['report', 'weekly', 'automation']
+            });
