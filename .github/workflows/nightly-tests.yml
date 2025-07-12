@@ -53,7 +53,7 @@ jobs:
         if: always()
         run: |
           npm run ctrf:summary
-          npm run ai:analyze
+          npm run ai:report
         continue-on-error: true
 
       - name: 📧 Send Failure Notification

@@ -111,7 +111,7 @@ jobs:
           echo "" >> API.md
           echo "- \`npm test\` - Run all tests" >> API.md
           echo "- \`npm run test:summary\` - Run tests with CTRF summary" >> API.md
-          echo "- \`npm run ai:analyze\` - Generate AI analysis" >> API.md
+          echo "- \`npm run ai:report\` - Generate AI analysis" >> API.md
           echo "- \`npm run ctrf:view\` - View CTRF reports" >> API.md
 
       - name: 📚 Update changelog

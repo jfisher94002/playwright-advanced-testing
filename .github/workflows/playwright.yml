@@ -172,7 +172,7 @@ jobs:
           # Check if we have CTRF reports to analyze
           if find downloaded-reports -name "*.json" -type f | grep -q .; then
             echo "CTRF reports found, generating AI analysis..."
-            npm run ai:analyze
+            npm run ai:report
           else
             echo "No CTRF reports found, skipping AI analysis"
           fi

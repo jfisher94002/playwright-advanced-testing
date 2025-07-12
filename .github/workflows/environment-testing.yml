@@ -118,7 +118,7 @@ jobs:
       - name: 🤖 Generate AI analysis for failures
         if: failure()
         run: |
-          npm run ai:analyze
+          npm run ai:report
         continue-on-error: true
 
       - name: 📸 Capture environment screenshots
