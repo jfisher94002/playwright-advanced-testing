@@ -1,0 +1,39 @@
+
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# AI Test Reports
+ai-test-report-*.html
+ctrf-reports/
+
+# Screenshots from failed tests
+*.png
+!assets/**/*.png
+
+# Build outputs
+dist/
+
+# Environment variables
+.env
+.env.local
+
+# IDE files
+.vscode/settings.json
+.idea/
+
+# OS generated files
+.DS_Store
+*.zip
+
+# Logs
+logs
+*.log
