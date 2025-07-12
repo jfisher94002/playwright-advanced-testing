@@ -4,10 +4,15 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "test": "npx playwright test",
     "regression": "npx playwright test",
     "webTests": "npx playwright test --grep @Web",
     "APITests": "npx playwright test --grep @API",
-    "SafariNewConfig": "npx playwright test --config playwright.config1.js --project=safari"
+    "SafariNewConfig": "npx playwright test --config playwright.config1.js --project=safari",
+    "ctrf:summary": "ctrf summary ctrf/ctrf-report.json",
+    "ctrf:merge": "ctrf merge ctrf/ctrf-report.json",
+    "ai:report": "node ../scripts/ai-report.js",
+    "test:with-reports": "npx playwright test && npm run ctrf:summary && npm run ai:report"
   },
   "keywords": [],
   "author": "",
@@ -16,7 +21,9 @@
     "@cucumber/cucumber": "*",
     "@playwright/test": "^1.40",
     "allure-playwright": "^2.0.0-beta.15",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "ctrf": "^0.0.12",
+    "playwright-ctrf-json-reporter": "^0.0.21"
   },
   "dependencies": {
     "exceljs": "^4.4.0"

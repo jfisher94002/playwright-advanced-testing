@@ -12,7 +12,12 @@ const config = {
     timeout: 5000
   },
   
-  reporter: 'html',
+  reporter: [
+    ['html'],
+    ['playwright-ctrf-json-reporter', { 
+      outputFile: 'ctrf/ctrf-report.json' 
+    }]
+  ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
 

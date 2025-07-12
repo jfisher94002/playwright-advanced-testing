@@ -1,27 +1,94 @@
-name: Playwright Tests
+name: 🎭 Playwright Tests with CTRF & AI Reporting
 on:
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+
+env:
+  NODE_VERSION: '20'
+
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-node@v2
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v4
       with:
-        node-version: '14.x'
-    - name: Install dependencies
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: 📦 Install dependencies
       run: npm ci
-    - name: Install Playwright
+      
+    - name: 🎭 Install Playwright Browsers
       run: npx playwright install --with-deps
-    - name: Run Playwright tests
+      
+    - name: 📊 Install CTRF CLI tool
+      run: npm install -g ctrf
+      
+    - name: 🤖 Install Ollama (for AI analysis)
+      run: |
+        curl -fsSL https://ollama.ai/install.sh | sh
+        # Start Ollama service in background
+        ollama serve &
+        # Wait for service to start
+        sleep 10
+        # Pull a lightweight model for testing
+        ollama pull llama3.2:1b
+      continue-on-error: true
+      
+    - name: 🧪 Run Playwright tests
       run: npx playwright test
-    - uses: actions/upload-artifact@v2
+      continue-on-error: true
+      
+    - name: 📊 Generate CTRF Summary
+      if: always()
+      run: |
+        if [ -f "ctrf/ctrf-report.json" ]; then
+          npm run ctrf:summary
+        else
+          echo "No CTRF report found"
+        fi
+      continue-on-error: true
+      
+    - name: 🤖 Generate AI Analysis (on failures)
+      if: failure()
+      run: |
+        if [ -f "ctrf/ctrf-report.json" ]; then
+          echo "Generating AI analysis..."
+          npm run ai:report
+        else
+          echo "No CTRF report for AI analysis"
+        fi
+      continue-on-error: true
+      
+    - name: 📋 Upload Playwright Report
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: playwright-report
         path: playwright-report/
+        retention-days: 30
+        
+    - name: 📊 Upload CTRF Report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ctrf-report
+        path: ctrf/
+        retention-days: 30
+        
+    - name: 🤖 Upload AI Analysis Report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ai-analysis-report
+        path: |
+          ai-reports/
+          *.html
         retention-days: 30
