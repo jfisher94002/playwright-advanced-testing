@@ -1,0 +1,39 @@
+{
+  "extends": [
+    "eslint:recommended",
+    "@typescript-eslint/recommended",
+    "prettier"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["@typescript-eslint", "playwright"],
+  "root": true,
+  "env": {
+    "node": true,
+    "es2022": true
+  },
+  "rules": {
+    "no-console": "warn",
+    "no-unused-vars": "error",
+    "no-debugger": "error",
+    "prefer-const": "error",
+    "no-var": "error",
+    "playwright/missing-playwright-await": "error",
+    "playwright/no-conditional-in-test": "error",
+    "playwright/no-nested-step": "error",
+    "playwright/valid-expect": "error",
+    "playwright/prefer-web-first-assertions": "error",
+    "playwright/no-page-pause": "warn",
+    "playwright/no-element-handle": "error"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.spec.js", "**/*.spec.ts", "**/*.test.js", "**/*.test.ts"],
+      "extends": ["plugin:playwright/recommended"],
+      "rules": {
+        "playwright/expect-expect": "error",
+        "playwright/no-focused-test": "error",
+        "playwright/no-skipped-test": "warn"
+      }
+    }
+  ]
+}

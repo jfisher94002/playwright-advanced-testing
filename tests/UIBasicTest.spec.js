@@ -11,7 +11,7 @@ test('Page Playwright Tests', async({page}) => {
     const userName = page.locator('#userEmail');
     const userPassword = page.locator('#userPassword');
     await page.goto('https://rahulshettyacademy.com/client');
-    console.log(await page.title());
+    // Debug: Current page title
     await expect(page).toHaveTitle("Let's Shop");
     
     // Fill login form

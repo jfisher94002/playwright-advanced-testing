@@ -1,0 +1,823 @@
+import type { CtrfReport, CtrfTest } from '../types/ctrf';
+import fs from 'fs';
+import path from 'path';
+import { marked } from 'marked';
+
+// Configure marked for cleaner HTML output
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+});
+
+// Constants for better maintainability
+const TIMESTAMP_FORMAT_REGEX = /[:.]/g;
+const MAX_DISPLAYED_PASSED_TESTS = 5;
+const TIMEOUT_MS_REGEX = /Timed out (\d+)ms waiting for/;
+const EXPECTED_STRING_REGEX = /Expected string: "([^"]*)"/;
+const RECEIVED_STRING_REGEX = /Received string: "([^"]*)"/;
+
+const ANSI_COLOR_CODES = [
+  /\[(\d+)m/g,           // Basic ANSI codes like [31m, [39m
+  /\[(\d+);(\d+)m/g,     // Complex ANSI codes
+  /\[\d+m/g,             // Any remaining ANSI codes
+  /\[2m/g,               // Dim text codes
+  /\[22m/g,              // Normal intensity codes
+  /\[7m/g,               // Reverse video codes
+  /\[27m/g,              // Normal video codes
+] as const;
+
+interface PerformanceMetrics {
+  startTime: number;
+  endTime?: number;
+  duration?: number;
+  fileSize?: number;
+  testCount: number;
+  failedTestCount: number;
+}
+
+interface Logger {
+  info(message: string, data?: any): void;
+  warn(message: string, data?: any): void;
+  error(message: string, data?: any): void;
+  debug(message: string, data?: any): void;
+}
+
+class ConsoleLogger implements Logger {
+  private logLevel: 'debug' | 'info' | 'warn' | 'error' = 'info';
+
+  constructor(logLevel?: 'debug' | 'info' | 'warn' | 'error') {
+    this.logLevel = logLevel || 'info';
+  }
+
+  private shouldLog(level: string): boolean {
+    const levels = ['debug', 'info', 'warn', 'error'];
+    return levels.indexOf(level) >= levels.indexOf(this.logLevel);
+  }
+
+  info(message: string, data?: any): void {
+    if (this.shouldLog('info')) {
+      console.log(`[INFO] ${message}`, data ? JSON.stringify(data, null, 2) : '');
+    }
+  }
+
+  warn(message: string, data?: any): void {
+    if (this.shouldLog('warn')) {
+      console.warn(`[WARN] ${message}`, data ? JSON.stringify(data, null, 2) : '');
+    }
+  }
+
+  error(message: string, data?: any): void {
+    if (this.shouldLog('error')) {
+      console.error(`[ERROR] ${message}`, data ? JSON.stringify(data, null, 2) : '');
+    }
+  }
+
+  debug(message: string, data?: any): void {
+    if (this.shouldLog('debug')) {
+      console.debug(`[DEBUG] ${message}`, data ? JSON.stringify(data, null, 2) : '');
+    }
+  }
+}
+
+// Default logger instance
+const defaultLogger = new ConsoleLogger(process.env.LOG_LEVEL as any || 'info');
+
+interface ReportConfig {
+  maxDisplayedPassedTests: number;
+  enablePerformanceMetrics?: boolean;
+  enableAccessibility?: boolean;
+  logger?: Logger;
+  colors: {
+    primary: string;
+    secondary: string;
+    success: string;
+    error: string;
+    warning: string;
+    muted: string;
+  };
+  gradients: {
+    header: string;
+    aiSummary: string;
+    overallSummary: string;
+  };
+}
+
+const DEFAULT_REPORT_CONFIG: ReportConfig = {
+  maxDisplayedPassedTests: MAX_DISPLAYED_PASSED_TESTS,
+  enablePerformanceMetrics: true,
+  enableAccessibility: true,
+  colors: {
+    primary: '#667eea',
+    secondary: '#764ba2',
+    success: '#28a745',
+    error: '#dc3545',
+    warning: '#ffc107',
+    muted: '#6c757d',
+  },
+  gradients: {
+    header: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    aiSummary: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    overallSummary: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  },
+};
+
+// Set default logger after config is defined
+DEFAULT_REPORT_CONFIG.logger = defaultLogger;
+
+interface FormattedError {
+  message: string;
+  trace?: string;
+}
+
+interface PerformanceMetrics {
+  startTime: number;
+  endTime?: number;
+  duration?: number;
+  fileSize?: number;
+  testCount: number;
+  failedTestCount: number;
+}
+
+interface Logger {
+  info(message: string, data?: any): void;
+  warn(message: string, data?: any): void;
+  error(message: string, data?: any): void;
+  debug(message: string, data?: any): void;
+}
+
+class ConsoleLogger implements Logger {
+  private logLevel: 'debug' | 'info' | 'warn' | 'error' = 'info';
+
+  constructor(logLevel?: 'debug' | 'info' | 'warn' | 'error') {
+    this.logLevel = logLevel || 'info';
+  }
+
+  private shouldLog(level: string): boolean {
+    const levels = ['debug', 'info', 'warn', 'error'];
+    return levels.indexOf(level) >= levels.indexOf(this.logLevel);
+  }
+
+  info(message: string, data?: any): void {
+    if (this.shouldLog('info')) {
+      console.log(`[INFO] ${message}`, data ? JSON.stringify(data, null, 2) : '');
+    }
+  }
+
+  warn(message: string, data?: any): void {
+    if (this.shouldLog('warn')) {
+      console.warn(`[WARN] ${message}`, data ? JSON.stringify(data, null, 2) : '');
+    }
+  }
+
+  error(message: string, data?: any): void {
+    if (this.shouldLog('error')) {
+      console.error(`[ERROR] ${message}`, data ? JSON.stringify(data, null, 2) : '');
+    }
+  }
+
+  debug(message: string, data?: any): void {
+    if (this.shouldLog('debug')) {
+      console.debug(`[DEBUG] ${message}`, data ? JSON.stringify(data, null, 2) : '');
+    }
+  }
+}
+
+// Default logger instance
+const defaultLogger = new ConsoleLogger(process.env.LOG_LEVEL as any || 'info');
+
+/**
+ * Escapes HTML special characters to prevent XSS
+ * @param text - The text to escape
+ * @returns HTML-safe text
+ */
+function escapeHtml(text: string): string {
+  if (!text) {
+    return text;
+  }
+  
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
+
+/**
+ * Converts markdown text to HTML while preserving structure
+ * @param text - The markdown text to convert
+ * @returns HTML string
+ */
+function formatAiAnalysis(text: string): string {
+  if (!text?.trim()) {
+    return '<p>No analysis available</p>';
+  }
+  
+  try {
+    return marked(text) as string;
+  } catch (error) {
+    console.error('Error formatting AI analysis:', error);
+    return `<p>${text}</p>`;
+  }
+}
+
+/**
+ * Removes ANSI color codes and escape sequences from text
+ * @param text - The text to clean
+ * @returns Cleaned text without ANSI codes
+ */
+function cleanErrorMessage(text: string): string {
+  if (!text) {
+    return text;
+  }
+  
+  let cleanedText = text;
+  
+  // Remove all ANSI color codes
+  for (const regex of ANSI_COLOR_CODES) {
+    cleanedText = cleanedText.replace(regex, '');
+  }
+  
+  return cleanedText.trim();
+}
+
+/**
+ * Formats error messages for better display in the HTML report
+ * @param message - The error message
+ * @param trace - Optional stack trace
+ * @returns Formatted error object
+ */
+function formatErrorForDisplay(message: string, trace?: string): FormattedError {
+  const cleanMessage = cleanErrorMessage(message);
+  const cleanTrace = trace ? cleanErrorMessage(trace) : undefined;
+  
+  // Extract key information for better display
+  let formattedMessage = cleanMessage;
+  
+  // Format timeout errors more clearly
+  if (cleanMessage.includes('Timed out') && cleanMessage.includes('waiting for')) {
+    formattedMessage = formatTimeoutError(cleanMessage);
+  }
+  
+  return {
+    message: formattedMessage,
+    trace: cleanTrace,
+  };
+}
+
+/**
+ * Formats timeout-specific error messages
+ * @param message - The timeout error message
+ * @returns Formatted timeout error message
+ */
+function formatTimeoutError(message: string): string {
+  const timeoutMatch = message.match(TIMEOUT_MS_REGEX);
+  const expectedMatch = message.match(EXPECTED_STRING_REGEX);
+  const receivedMatch = message.match(RECEIVED_STRING_REGEX);
+  
+  if (!timeoutMatch) {
+    return message;
+  }
+  
+  let formattedMessage = `⏱️ Timeout Error (${timeoutMatch[1]}ms)\n`;
+  
+  if (expectedMatch && receivedMatch) {
+    const expected = expectedMatch[1];
+    const received = receivedMatch[1];
+    
+    formattedMessage += `\n📝 Title Mismatch:\n`;
+    formattedMessage += `Expected: "${expected}"\n`;
+    formattedMessage += `Received: "${received}"\n`;
+    
+    // Highlight the difference
+    if (expected !== received) {
+      formattedMessage += `\n🔍 The main difference appears to be in the spelling: "${expected}" vs "${received}"`;
+    }
+  }
+  
+  return formattedMessage;
+}
+
+/**
+ * Returns the CSS styles for the HTML report
+ * @param config - Report configuration for theming
+ */
+function getReportStyles(config: ReportConfig = DEFAULT_REPORT_CONFIG): string {
+  const { colors, gradients } = config;
+  
+  return `
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+      margin: 0; 
+      padding: 20px; 
+      background: #f8f9fa; 
+      line-height: 1.6;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header { 
+      background: ${gradients.header}; 
+      color: white; 
+      padding: 2rem; 
+      border-radius: 12px; 
+      margin-bottom: 2rem; 
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .header h1 { margin: 0 0 0.5rem 0; font-size: 2.5rem; font-weight: 700; }
+    .summary { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+      gap: 1rem; 
+      margin-bottom: 2rem; 
+    }
+    .summary-card { 
+      background: white; 
+      padding: 1.5rem; 
+      border-radius: 8px; 
+      text-align: center; 
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease;
+    }
+    .summary-card:hover { transform: translateY(-2px); }
+    .summary-card h3 { margin: 0 0 0.5rem 0; font-size: 2rem; font-weight: 700; }
+    .passed { color: ${colors.success}; }
+    .failed { color: ${colors.error}; }
+    .skipped { color: ${colors.muted}; }
+    .section { 
+      background: white; 
+      border-radius: 8px; 
+      margin-bottom: 2rem; 
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+      overflow: hidden;
+    }
+    .section-header { 
+      background: #f8f9fa; 
+      padding: 1rem 1.5rem; 
+      border-bottom: 1px solid #e9ecef; 
+      font-weight: 600;
+    }
+    .section-content { padding: 1.5rem; }
+    .test-item { 
+      border-left: 4px solid #e9ecef; 
+      padding: 1.5rem; 
+      margin-bottom: 1.5rem; 
+      background: #f8f9fa; 
+      border-radius: 4px;
+      transition: box-shadow 0.2s ease;
+    }
+    .test-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .test-item.failed { border-left-color: ${colors.error}; background: #fff5f5; }
+    .test-item.passed { border-left-color: ${colors.success}; background: #f0fff4; }
+    .test-name { 
+      font-size: 1.2rem; 
+      font-weight: 600; 
+      margin-bottom: 1rem; 
+      color: #333;
+    }
+    .test-details { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+      gap: 1rem; 
+      margin-bottom: 1rem; 
+      font-size: 0.9rem; 
+    }
+    .ai-summary { 
+      background: ${gradients.aiSummary}; 
+      color: white; 
+      padding: 1.5rem; 
+      border-radius: 8px; 
+      margin-top: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .ai-summary h4 { margin: 0 0 1rem 0; font-weight: 600; }
+    .error-details { 
+      background: #fff; 
+      border: 1px solid #dee2e6; 
+      border-radius: 4px; 
+      padding: 1rem; 
+      margin-top: 1rem; 
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace; 
+      font-size: 0.875rem; 
+    }
+    .error-message { 
+      color: ${colors.error}; 
+      font-weight: 600; 
+      margin-bottom: 0.5rem; 
+      line-height: 1.4; 
+    }
+    .error-trace { 
+      color: ${colors.muted}; 
+      margin-top: 0.5rem; 
+      line-height: 1.3; 
+      white-space: pre-wrap;
+    }
+    .overall-summary { 
+      background: ${gradients.overallSummary}; 
+      color: white; 
+      padding: 2rem; 
+      border-radius: 8px; 
+      margin-top: 2rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .overall-summary h3 { margin: 0 0 1rem 0; font-weight: 600; }
+    @media (max-width: 768px) {
+      .summary { grid-template-columns: 1fr 1fr; }
+      .test-details { grid-template-columns: 1fr; }
+      .header h1 { font-size: 2rem; }
+      .container { padding: 0 10px; }
+    }
+  `;
+}
+
+/**
+ * Generates the header section of the report
+ */
+function generateHeader(): string {
+  const currentDate = new Date();
+  return `
+    <div class="header">
+      <h1>🤖 AI Test Report</h1>
+      <div>Generated on ${currentDate.toLocaleDateString()} at ${currentDate.toLocaleTimeString()}</div>
+    </div>
+  `;
+}
+
+/**
+ * Generates the summary section with test statistics
+ */
+function generateSummarySection(report: CtrfReport): string {
+  const { summary } = report.results;
+  return `
+    <div class="summary">
+      <div class="summary-card">
+        <h3 class="passed">${summary.passed}</h3>
+        <p>Passed</p>
+      </div>
+      <div class="summary-card">
+        <h3 class="failed">${summary.failed}</h3>
+        <p>Failed</p>
+      </div>
+      <div class="summary-card">
+        <h3 class="skipped">${summary.skipped}</h3>
+        <p>Skipped</p>
+      </div>
+      <div class="summary-card">
+        <h3>${summary.tests}</h3>
+        <p>Total Tests</p>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Generates the test environment section
+ * @param report - The CTRF report data
+ */
+function generateEnvironmentSection(report: CtrfReport): string {
+  const { tool, summary } = report.results;
+  const duration = ((summary.stop - summary.start) / 1000).toFixed(2);
+  
+  return `
+    <div class="section">
+      <div class="section-header">
+        <h2>Test Environment</h2>
+      </div>
+      <div class="section-content">
+        <div class="test-details">
+          <div><strong>Tool:</strong> ${escapeHtml(tool.name)}</div>
+          <div><strong>Version:</strong> ${escapeHtml(tool.version ?? 'N/A')}</div>
+          <div><strong>Duration:</strong> ${duration}s</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Generates the failed tests section
+ * @param failedTests - Array of failed test results
+ */
+function generateFailedTestsSection(failedTests: CtrfTest[]): string {
+  if (failedTests.length === 0) {
+    return '';
+  }
+
+  const testsHtml = failedTests.map(generateFailedTestItem).join('');
+  
+  return `
+    <div class="section">
+      <div class="section-header">
+        <h2>❌ Failed Tests (${failedTests.length})</h2>
+      </div>
+      <div class="section-content">
+        ${testsHtml}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Generates HTML for a single failed test item
+ * @param test - The failed test result
+ */
+function generateFailedTestItem(test: CtrfTest): string {
+  const errorSection = generateErrorSection(test);
+  const aiSection = generateAiSection(test);
+  
+  return `
+    <div class="test-item failed">
+      <div class="test-name">${escapeHtml(test.name)}</div>
+      
+      <div class="test-details">
+        <div><strong>Duration:</strong> ${test.duration}ms</div>
+        ${test.suite != null ? `<div><strong>Suite:</strong> ${escapeHtml(test.suite)}</div>` : ''}
+        ${test.retries != null && test.retries > 0 ? `<div><strong>Retries:</strong> ${test.retries}</div>` : ''}
+        ${test.flaky === true ? `<div><strong>Flaky:</strong> Yes</div>` : ''}
+      </div>
+      
+      ${errorSection}
+      ${aiSection}
+    </div>
+  `;
+}
+
+/**
+ * Generates the error details section for a test
+ * @param test - The test result
+ */
+function generateErrorSection(test: CtrfTest): string {
+  if (!test.message && !test.trace) {
+    return '';
+  }
+
+  const formatted = formatErrorForDisplay(test.message || '', test.trace || '');
+  const messageHtml = formatted.message 
+    ? `<div class="error-message">${formatted.message.replace(/\n/g, '<br>')}</div>` 
+    : '';
+  const traceHtml = formatted.trace && formatted.trace !== formatted.message 
+    ? `<div class="error-trace"><strong>Stack Trace:</strong><br>${formatted.trace.replace(/\n/g, '<br>')}</div>` 
+    : '';
+
+  return `
+    <div class="error-details">
+      ${messageHtml}
+      ${traceHtml}
+    </div>
+  `;
+}
+
+/**
+ * Generates the AI analysis section for a test
+ * @param test - The test result
+ */
+function generateAiSection(test: CtrfTest): string {
+  if (!test.ai) {
+    return '';
+  }
+
+  return `
+    <div class="ai-summary">
+      <h4>🤖 AI Analysis</h4>
+      <div>${formatAiAnalysis(test.ai)}</div>
+    </div>
+  `;
+}
+
+/**
+ * Generates the passed tests section
+ * @param passedTests - Array of passed test results
+ * @param config - Report configuration
+ */
+function generatePassedTestsSection(
+  passedTests: CtrfTest[], 
+  config: ReportConfig = DEFAULT_REPORT_CONFIG
+): string {
+  if (passedTests.length === 0) {
+    return '';
+  }
+
+  const { maxDisplayedPassedTests } = config;
+  const displayTests = passedTests.slice(0, maxDisplayedPassedTests);
+  const testsHtml = displayTests.map(generatePassedTestItem).join('');
+  const remainingHtml = passedTests.length > maxDisplayedPassedTests 
+    ? `<div style="text-align: center; padding: 1rem; color: #6c757d;">... and ${passedTests.length - maxDisplayedPassedTests} more passed tests</div>`
+    : '';
+
+  return `
+    <div class="section">
+      <div class="section-header">
+        <h2>✅ Passed Tests (${passedTests.length})</h2>
+      </div>
+      <div class="section-content">
+        ${testsHtml}
+        ${remainingHtml}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Generates HTML for a single passed test item
+ * @param test - The passed test result
+ */
+function generatePassedTestItem(test: CtrfTest): string {
+  return `
+    <div class="test-item passed">
+      <div class="test-name">${escapeHtml(test.name)}</div>
+      <div class="test-details">
+        <div><strong>Duration:</strong> ${test.duration}ms</div>
+        ${test.suite != null ? `<div><strong>Suite:</strong> ${escapeHtml(test.suite)}</div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Generates the overall AI summary section
+ */
+function generateOverallSummarySection(report: CtrfReport): string {
+  if (!report.results.extra?.ai) {
+    return '';
+  }
+
+  return `
+    <div class="overall-summary">
+      <h3>📋 Overall AI Summary</h3>
+      <div>${formatAiAnalysis(report.results.extra.ai)}</div>
+    </div>
+  `;
+}
+
+/**
+ * Generates the footer section
+ */
+function generateFooter(): string {
+  return `
+    <div style="text-align: center; padding: 2rem; color: #6c757d; font-size: 0.9rem;">
+      Generated by AI Test Reporter • ${new Date().toISOString()}
+    </div>
+  `;
+}
+
+/**
+ * Validates the CTRF report structure
+ * @param report - The report to validate
+ * @throws Error if the report is invalid
+ */
+function validateReport(report: CtrfReport): void {
+  if (!report?.results) {
+    throw new Error('Invalid report: missing results object');
+  }
+  
+  if (!report.results.summary) {
+    throw new Error('Invalid report: missing summary object');
+  }
+  
+  if (!Array.isArray(report.results.tests)) {
+    throw new Error('Invalid report: tests must be an array');
+  }
+  
+  if (!report.results.tool?.name) {
+    throw new Error('Invalid report: missing tool name');
+  }
+}
+
+/**
+ * Generates a safe filename for the HTML report
+ * @param customFilename - Optional custom filename
+ * @returns A safe filename for the report
+ */
+function generateSafeFilename(customFilename?: string): string {
+  if (customFilename) {
+    // Sanitize the custom filename
+    const sanitized = customFilename.replace(/[^a-zA-Z0-9.-]/g, '_');
+    return sanitized.endsWith('.html') ? sanitized : `${sanitized}.html`;
+  }
+  
+  const timestamp = new Date().toISOString().replace(TIMESTAMP_FORMAT_REGEX, '-').slice(0, -5);
+  return `ai-test-report-${timestamp}.html`;
+}
+
+/**
+ * Ensures the directory exists for the given file path
+ * @param filePath - The file path to check
+ */
+function ensureDirectoryExists(filePath: string): void {
+  const directory = path.dirname(filePath);
+  if (!fs.existsSync(directory)) {
+    fs.mkdirSync(directory, { recursive: true });
+  }
+}
+
+/**
+ * Generates a comprehensive HTML report from CTRF test results
+ * @param report - The CTRF report data
+ * @param htmlFilename - Optional custom filename or path
+ * @param config - Optional report configuration for theming
+ * @returns The filename of the generated HTML report
+ * @throws Error if report generation fails
+ */
+export function generateHtmlReport(
+  report: CtrfReport,
+  htmlFilename?: string,
+  config: ReportConfig = DEFAULT_REPORT_CONFIG
+): string {
+  try {
+    // Validate input
+    validateReport(report);
+    
+    // Generate safe filename
+    const filename = generateSafeFilename(htmlFilename);
+    
+    // Ensure directory exists
+    ensureDirectoryExists(filename);
+    
+    // Filter tests by status
+    const failedTests = report.results.tests.filter((test) => test.status === 'failed');
+    const passedTests = report.results.tests.filter((test) => test.status === 'passed');
+
+    // Generate HTML content
+    const html = generateHtmlContent(report, failedTests, passedTests, config);
+
+    // Write to file
+    fs.writeFileSync(filename, html, 'utf8');
+    
+    return filename;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to generate HTML report: ${errorMessage}`);
+  }
+}
+
+/**
+ * Generates the complete HTML content for the report
+ * @param report - The CTRF report data
+ * @param failedTests - Array of failed test results
+ * @param passedTests - Array of passed test results  
+ * @param config - Report configuration for theming
+ */
+function generateHtmlContent(
+  report: CtrfReport, 
+  failedTests: CtrfTest[], 
+  passedTests: CtrfTest[],
+  config: ReportConfig = DEFAULT_REPORT_CONFIG
+): string {
+  const styles = getReportStyles(config);
+  const header = generateHeader();
+  const summary = generateSummarySection(report);
+  const environment = generateEnvironmentSection(report);
+  const failedSection = generateFailedTestsSection(failedTests);
+  const passedSection = generatePassedTestsSection(passedTests, config);
+  const overallSummary = generateOverallSummarySection(report);
+  const footer = generateFooter();
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Test Report - ${new Date().toLocaleDateString()}</title>
+    <style>${styles}</style>
+</head>
+<body>
+    <div class="container">
+        ${header}
+        ${summary}
+        ${environment}
+        ${failedSection}
+        ${passedSection}
+        ${overallSummary}
+        ${footer}
+    </div>
+</body>
+</html>`;
+}
+
+/**
+ * Creates a custom report configuration by merging with defaults
+ * @param customConfig - Partial configuration to override defaults
+ * @returns Complete report configuration
+ */
+export function createReportConfig(customConfig: Partial<ReportConfig>): ReportConfig {
+  return {
+    ...DEFAULT_REPORT_CONFIG,
+    ...customConfig,
+    colors: {
+      ...DEFAULT_REPORT_CONFIG.colors,
+      ...customConfig.colors,
+    },
+    gradients: {
+      ...DEFAULT_REPORT_CONFIG.gradients,
+      ...customConfig.gradients,
+    },
+  };
+}
+
+/**
+ * Export the default configuration for external use
+ */
+export { DEFAULT_REPORT_CONFIG };
+
+/**
+ * Export types for external use
+ */
+export type { ReportConfig, FormattedError };

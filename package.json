@@ -8,6 +8,13 @@
     "test:headed": "playwright test --headed && npm run ctrf:summary && npm run ai:bedrock",
     "test:report": "playwright show-report",
     "test:only": "playwright test",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:critical": "playwright test --grep @critical",
+    "test:regression": "playwright test --grep @regression",
+    "test:e2e": "playwright test --grep @e2e",
+    "test:refactored": "playwright test tests/refactored-e2e.spec.ts",
+    "test:env:staging": "TEST_ENV=staging playwright test",
+    "test:env:development": "TEST_ENV=development playwright test",
     "test:summary": "node scripts/ctrf-summary.js",
     "ctrf:merge": "ctrf merge test-results/ctrf-report.json",
     "ctrf:summary": "ctrf summary test-results/ctrf-report.json",
@@ -25,7 +32,28 @@
     "bedrock:cli": "node bedrock-cli.js",
     "bedrock:test": "node bedrock-cli.js quick",
     "build": "tsc",
-    "ai-ctrf": "node dist/index.js"
+    "build:watch": "tsc --watch",
+    "ai-ctrf": "node dist/index.js",
+    "lint": "eslint . --ext .js,.ts,.jsx,.tsx",
+    "lint:fix": "eslint . --ext .js,.ts,.jsx,.tsx --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist test-results playwright-report",
+    "prepare": "husky install",
+    "pretest": "npm run build",
+    "posttest": "npm run format:check"
+  },
+  "lint-staged": {
+    "*.{js,ts,jsx,tsx}": [
+      "eslint --fix",
+      "prettier --write",
+      "git add"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write",
+      "git add"
+    ]
   },
   "keywords": [],
   "author": "",
@@ -40,6 +68,9 @@
     "ctrf": "^0.0.12",
     "eslint": "^8.54.0",
     "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-playwright": "^0.15.3",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0",
     "playwright-ctrf-json-reporter": "^0.0.21",
     "prettier": "^3.1.0",
     "typescript": "^5.4.5"

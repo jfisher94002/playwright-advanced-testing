@@ -9,6 +9,26 @@ marked.setOptions({
   gfm: true
 })
 
+/**
+ * Escapes HTML characters to prevent XSS attacks
+ * @param text - The text to escape
+ * @returns Escaped HTML-safe text
+ */
+function escapeHtml(text: string): string {
+  if (!text) {
+    return text
+  }
+  
+  // Manual escaping for better performance and security
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;')
+}
+
 function formatAiAnalysis(text: string): string {
   // Convert markdown to HTML while preserving structure
   return marked(text) as string
@@ -63,8 +83,8 @@ function formatErrorForDisplay(message: string, trace?: string): { message: stri
   }
   
   return {
-    message: formattedMessage,
-    trace: cleanTrace
+    message: escapeHtml(formattedMessage),
+    trace: cleanTrace ? escapeHtml(cleanTrace) : undefined
   }
 }
 
@@ -72,6 +92,11 @@ export function generateHtmlReport(
   report: CtrfReport,
   htmlFilename?: string
 ): string {
+  // Input validation
+  if (!report || !report.results || !report.results.tests) {
+    throw new Error('Failed to generate HTML report: Invalid report structure')
+  }
+  
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
   const defaultFilename = `ai-test-report-${timestamp}.html`
   const filename = htmlFilename ?? defaultFilename
@@ -110,6 +135,25 @@ export function generateHtmlReport(
         .error-message { color: #dc3545; font-weight: 600; margin-bottom: 0.5rem; line-height: 1.4; }
         .error-trace { color: #6c757d; margin-top: 0.5rem; line-height: 1.3; }
         .overall-summary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 8px; margin-top: 2rem; }
+        
+        /* Responsive design for mobile and tablet devices */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .header { padding: 1.5rem; }
+            .header h1 { font-size: 2rem; }
+            .summary { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+            .summary-card { padding: 1rem; }
+            .section-content { padding: 1rem; }
+            .test-item { padding: 1rem; }
+            .test-details { grid-template-columns: 1fr; gap: 0.5rem; }
+            .overall-summary { padding: 1.5rem; }
+        }
+        
+        @media (max-width: 480px) {
+            .summary { grid-template-columns: 1fr; }
+            .header h1 { font-size: 1.5rem; }
+            .test-name { font-size: 1rem; }
+        }
     </style>
 </head>
 <body>
@@ -159,11 +203,11 @@ export function generateHtmlReport(
             <div class="section-content">
                 ${failedTests.map((test) => `
                 <div class="test-item failed">
-                    <div class="test-name">${test.name}</div>
+                    <div class="test-name">${escapeHtml(test.name)}</div>
                     
                     <div class="test-details">
                         <div><strong>Duration:</strong> ${test.duration}ms</div>
-                        ${test.suite != null ? `<div><strong>Suite:</strong> ${test.suite}</div>` : ''}
+                        ${test.suite != null ? `<div><strong>Suite:</strong> ${escapeHtml(test.suite)}</div>` : ''}
                         ${test.retries != null && test.retries > 0 ? `<div><strong>Retries:</strong> ${test.retries}</div>` : ''}
                         ${test.flaky === true ? `<div><strong>Flaky:</strong> Yes</div>` : ''}
                     </div>
@@ -200,10 +244,10 @@ export function generateHtmlReport(
             <div class="section-content">
                 ${passedTests.slice(0, 5).map((test) => `
                 <div class="test-item passed">
-                    <div class="test-name">${test.name}</div>
+                    <div class="test-name">${escapeHtml(test.name)}</div>
                     <div class="test-details">
                         <div><strong>Duration:</strong> ${test.duration}ms</div>
-                        ${test.suite != null ? `<div><strong>Suite:</strong> ${test.suite}</div>` : ''}
+                        ${test.suite != null ? `<div><strong>Suite:</strong> ${escapeHtml(test.suite)}</div>` : ''}
                     </div>
                 </div>
                 `).join('')}
