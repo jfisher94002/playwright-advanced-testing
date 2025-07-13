@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-const { BedrockRuntimeClient } = require('@aws-sdk/client-bedrock-runtime');
 const { BedrockClient, ListFoundationModelsCommand } = require('@aws-sdk/client-bedrock');
 
 async function testBedrockConnection() {
