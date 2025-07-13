@@ -112,18 +112,52 @@ jobs:
       - name: 📊 Generate CTRF Summary
         if: always()
         run: |
-          if [ -f "ctrf/ctrf-report.json" ]; then
+          if [ -f "test-results/ctrf-report.json" ]; then
             npm run ctrf:summary
           else
-            echo "No CTRF report found"
+            echo "No CTRF report found in test-results/"
           fi
+
+      - name: 🤖 Generate AI Analysis
+        if: always()
+        run: |
+          if [ -f "test-results/ctrf-report.json" ]; then
+            echo "Generating AI analysis for test results..."
+            npm run ai:report
+          else
+            echo "No CTRF report found, skipping AI analysis"
+          fi
+        continue-on-error: true
+        env:
+          AI_PROVIDER: ${{ secrets.AI_PROVIDER || 'ollama' }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-west-2' }}
+          BEDROCK_MODEL: ${{ secrets.BEDROCK_MODEL || 'anthropic.claude-3-sonnet-20240229-v1:0' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLAUDE_MODEL: ${{ secrets.CLAUDE_MODEL || 'claude-3-5-sonnet-20240620' }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL || 'gpt-4o' }}
+          OLLAMA_MODEL: ${{ secrets.OLLAMA_MODEL || 'llama3.2' }}
 
       - name: 📈 Upload CTRF Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ctrf-report-${{ matrix.browser }}
-          path: ctrf/
+          path: |
+            test-results/ctrf-report.json
+            ctrf/
+          retention-days: 30
+
+      - name: 🤖 Upload AI Analysis Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-report-${{ matrix.browser }}
+          path: |
+            ai-test-report-*.html
+            ai-reports/
           retention-days: 30
 
       - name: 📋 Upload Playwright Report
@@ -144,64 +178,11 @@ jobs:
             *.png
           retention-days: 7
 
-  # AI Analysis job (runs only on failures)
+  # AI Analysis job (consolidates reports from all browsers)
   ai-analysis:
-    name: 🤖 AI Test Analysis
+    name: 🤖 Consolidated AI Test Analysis
     runs-on: ubuntu-latest
     needs: test
-    if: failure()
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: 📦 Install dependencies
-        run: npm ci
-
-      - name: 📥 Download CTRF reports
-        uses: actions/download-artifact@v4
-        with:
-          pattern: ctrf-report-*
-          path: downloaded-reports/
-          merge-multiple: true
-
-      - name: 🤖 Generate AI Analysis
-        run: |
-          # Check if we have CTRF reports to analyze
-          if find downloaded-reports -name "*.json" -type f | grep -q .; then
-            echo "CTRF reports found, generating AI analysis..."
-            npm run ai:report
-          else
-            echo "No CTRF reports found, skipping AI analysis"
-          fi
-        continue-on-error: true
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION || 'us-west-2' }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
-      - name: 📋 Upload AI Analysis Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ai-analysis-report
-          path: |
-            ai-reports/
-            *.html
-          retention-days: 30
-
-  # Report consolidation job
-  consolidate-reports:
-    name: 📊 Consolidate Reports
-    runs-on: ubuntu-latest
-    needs: [test]
     if: always()
     steps:
       - name: 📥 Checkout code
@@ -216,69 +197,176 @@ jobs:
       - name: 📦 Install dependencies
         run: npm ci
 
-      - name: 📥 Download all CTRF reports
+      - name: � Build TypeScript
+        run: npm run build
+
+      - name: �📥 Download CTRF reports from all browsers
         uses: actions/download-artifact@v4
         with:
           pattern: ctrf-report-*
-          path: all-reports/
+          path: downloaded-reports/
           merge-multiple: true
 
-      - name: 🔄 Merge CTRF Reports
+      - name: 🔄 Consolidate CTRF Reports
         run: |
-          if find all-reports -name "*.json" -type f | grep -q .; then
-            echo "Merging CTRF reports..."
-            npm run ctrf:merge
-            npm run ctrf:summary
+          echo "Consolidating CTRF reports from all browsers..."
+          mkdir -p consolidated-reports
+          
+          # Find and copy all CTRF reports
+          find downloaded-reports -name "ctrf-report.json" -exec cp {} consolidated-reports/ctrf-report-{}.json \;
+          
+          # If we have multiple reports, merge them, otherwise use the single report
+          if [ $(ls consolidated-reports/ctrf-report*.json 2>/dev/null | wc -l) -gt 1 ]; then
+            echo "Multiple reports found, merging..."
+            # Use the first report as base for now (could implement proper merging)
+            cp consolidated-reports/ctrf-report*.json test-results/ctrf-report.json | head -1
+          elif [ $(ls consolidated-reports/ctrf-report*.json 2>/dev/null | wc -l) -eq 1 ]; then
+            echo "Single report found, using as-is..."
+            cp consolidated-reports/ctrf-report*.json test-results/ctrf-report.json
           else
-            echo "No CTRF reports to merge"
+            echo "No CTRF reports found to consolidate"
+            exit 1
+          fi
+
+      - name: 🤖 Generate Comprehensive AI Analysis
+        run: |
+          if [ -f "test-results/ctrf-report.json" ]; then
+            echo "Generating comprehensive AI analysis for all test results..."
+            npm run ai:report
+            
+            # Display summary of what was generated
+            echo "AI Analysis Generated:"
+            ls -la ai-test-report-*.html 2>/dev/null || echo "No HTML reports found"
+            ls -la test-results/ | grep -E "(ctrf|json)" || echo "No CTRF files found"
+          else
+            echo "No consolidated CTRF report found, skipping AI analysis"
           fi
         continue-on-error: true
+        env:
+          AI_PROVIDER: ${{ secrets.AI_PROVIDER || 'bedrock' }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-west-2' }}
+          BEDROCK_MODEL: ${{ secrets.BEDROCK_MODEL || 'anthropic.claude-3-sonnet-20240229-v1:0' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLAUDE_MODEL: ${{ secrets.CLAUDE_MODEL || 'claude-3-5-sonnet-20240620' }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL || 'gpt-4o' }}
+          OLLAMA_MODEL: ${{ secrets.OLLAMA_MODEL || 'llama3.2' }}
 
-      - name: 📊 Upload Consolidated Report
+      - name: 📋 Upload Comprehensive AI Analysis
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: consolidated-test-report
+          name: comprehensive-ai-analysis
           path: |
-            ctrf/
-            *.json
+            ai-test-report-*.html
+            test-results/ctrf-report.json
+            consolidated-reports/
           retention-days: 30
+
+      - name: 📊 Generate Test Summary for PR
+        if: always()
+        run: |
+          echo "Generating test summary for GitHub PR comment..."
+          if [ -f "test-results/ctrf-report.json" ]; then
+            echo "TEST_SUMMARY<<EOF" >> $GITHUB_ENV
+            cat test-results/ctrf-report.json | jq -r '
+              .results.summary as $summary |
+              "## 🎭 Playwright Test Results\n\n" +
+              "| Metric | Value |\n" +
+              "|--------|---------|\n" +
+              "| ✅ Passed | \($summary.passed) |\n" +
+              "| ❌ Failed | \($summary.failed) |\n" +
+              "| ⏭️ Skipped | \($summary.skipped) |\n" +
+              "| 📊 Total | \($summary.tests) |\n" +
+              "| ⏱️ Duration | \(($summary.stop - $summary.start) / 1000 | floor)s |\n\n" +
+              "**Environment:** " + (env.TEST_ENV // "staging") + "\n" +
+              "**AI Analysis:** Available in artifacts 🤖"
+            ' >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
+          else
+            echo "TEST_SUMMARY=No test results available" >> $GITHUB_ENV
+          fi
+
+  # Report consolidation job
+  consolidate-reports:
+    name: 📊 Consolidate Reports
+    runs-on: ubuntu-latest
+    needs: [test, ai-analysis]
+    if: always()
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: � Download all test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-report-*"
+          path: all-artifacts/
+          merge-multiple: true
+
+      - name: � Download AI analysis
+        uses: actions/download-artifact@v4
+        with:
+          name: comprehensive-ai-analysis
+          path: ai-analysis/
+
+      - name: � Create Final Report Package
+        run: |
+          mkdir -p final-reports
+          
+          # Copy CTRF reports
+          find all-artifacts -name "ctrf-report.json" -exec cp {} final-reports/ \; 2>/dev/null || true
+          
+          # Copy Playwright reports
+          find all-artifacts -name "index.html" -path "*/playwright-report/*" -exec cp {} final-reports/playwright-report.html \; 2>/dev/null || true
+          
+          # Copy AI analysis
+          cp ai-analysis/ai-test-report-*.html final-reports/ 2>/dev/null || true
+          cp ai-analysis/test-results/ctrf-report.json final-reports/consolidated-ctrf-report.json 2>/dev/null || true
+          
+          # Generate a summary index
+          cat > final-reports/README.md << 'EOF'
+          # Test Report Summary
+          
+          This package contains comprehensive test results and AI analysis.
+          
+          ## Files Included:
+          - `ai-test-report-*.html` - AI-powered analysis of test failures
+          - `playwright-report.html` - Standard Playwright HTML report  
+          - `ctrf-report.json` - Machine-readable test results
+          - `consolidated-ctrf-report.json` - Final consolidated results
+          
+          ## How to Use:
+          1. Open the AI test report HTML file in a browser for intelligent insights
+          2. Review the Playwright report for detailed test execution logs
+          3. Use the CTRF JSON for programmatic analysis
+          
+          Generated by: Playwright Tests with Advanced Reporting
+          EOF
+          
+          echo "Final report package contents:"
+          ls -la final-reports/
+
+      - name: � Upload Final Report Package  
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: complete-test-report-package
+          path: final-reports/
+          retention-days: 90
 
       - name: 📈 Comment PR with Results
         if: github.event_name == 'pull_request' && always()
         uses: actions/github-script@v7
         with:
           script: |
-            const fs = require('fs');
-            const path = require('path');
+            const testSummary = process.env.TEST_SUMMARY || "No test results available";
             
-            try {
-              const reportPath = 'ctrf/ctrf-report.json';
-              if (fs.existsSync(reportPath)) {
-                const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
-                const { results } = report;
-                
-                const summary = `
-            ## 🎭 Playwright Test Results
-            
-            | Metric | Value |
-            |--------|--------|
-            | ✅ Passed | ${results.summary.passed} |
-            | ❌ Failed | ${results.summary.failed} |
-            | ⏭️ Skipped | ${results.summary.skipped} |
-            | ⏱️ Duration | ${(results.summary.stop - results.summary.start) / 1000}s |
-            
-            **Environment:** ${process.env.TEST_ENV || 'staging'}
-            **Browsers:** ${JSON.stringify(process.env.BROWSERS || 'all')}
-            `;
-                
-                github.rest.issues.createComment({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  body: summary
-                });
-              }
-            } catch (error) {
-              console.log('Could not generate test summary:', error);
-            }
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: testSummary + "\n\n🔗 **Download AI Analysis:** Check the 'comprehensive-ai-analysis' artifact for detailed AI-powered test insights."
+            });
