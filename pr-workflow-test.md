@@ -1,4 +1,4 @@
-# 
+# GitHub PR Workflow Test
 
 *This test demonstrates our Senior SDET-level GitHub workflow configuration is properly protecting the main branch and enforcing code quality standards.*
 
