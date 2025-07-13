@@ -25,11 +25,11 @@ The repository has **5 required status checks** but the workflow may not provide
 
 ### 🔧 Configuration Verified
 
-5. ✅ **Repository Rules**: Should enforce quality standards
-6. ✅ **Status Checks**: GitHub Actions should run automatically
-7. ✅ **CODEOWNERS**: Should automatically assign reviewers
-8. ✅ **PR Template**: Should appear when creating pull requests
-9. ✅ **Branch Protection**: Direct pushes to `main` should be blocked
+1. ✅ **Repository Rules**: Should enforce quality standards
+2. ✅ **Status Checks**: GitHub Actions should run automatically
+3. ✅ **CODEOWNERS**: Should automatically assign reviewers
+4. ✅ **PR Template**: Should appear when creating pull requests
+5. ✅ **Branch Protection**: Direct pushes to `main` should be blocked
 
 ### ✅ Expected Behavior
 
