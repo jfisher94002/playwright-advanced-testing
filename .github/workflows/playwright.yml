@@ -154,6 +154,46 @@ jobs:
           OPENAI_MODEL: ${{ secrets.OPENAI_MODEL || 'gpt-4o' }}
           OLLAMA_MODEL: ${{ secrets.OLLAMA_MODEL || 'llama3.2' }}
 
+      - name: 🎯 Display Browser-Specific AI Insights
+        if: always() && steps.should-run.outputs.should_run == 'true'
+        run: |
+          echo "=========================================="
+          echo "🎭 ${{ matrix.browser }} AI ANALYSIS"
+          echo "=========================================="
+          
+          if [ -f "test-results/ctrf-report.json" ]; then
+            # Extract test summary
+            FAILED=$(cat test-results/ctrf-report.json | jq -r '.results.summary.failed // 0')
+            PASSED=$(cat test-results/ctrf-report.json | jq -r '.results.summary.passed // 0')
+            
+            echo "📊 Browser: ${{ matrix.browser }}"
+            echo "   ✅ Passed: $PASSED"
+            echo "   ❌ Failed: $FAILED"
+            echo ""
+            
+            if [ "$FAILED" -gt 0 ]; then
+              echo "🔍 FAILED TESTS (AI INSIGHTS):"
+              echo "----------------------------------------"
+              cat test-results/ctrf-report.json | jq -r '
+                .results.tests[] | 
+                select(.status == "failed") | 
+                "❌ " + .name + "\n" +
+                if .ai then "   💡 " + (.ai | split("\n")[0]) + "\n" else "   💡 AI analysis not available\n" end +
+                "   ⏱️  " + (.duration | tostring) + "ms\n"
+              '
+            else
+              echo "🎉 All ${{ matrix.browser }} tests passed!"
+            fi
+          else
+            echo "❌ No test results available for ${{ matrix.browser }}"
+          fi
+          echo "=========================================="
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLAUDE_MODEL: ${{ secrets.CLAUDE_MODEL || 'claude-3-5-sonnet-20240620' }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL || 'gpt-4o' }}
+          OLLAMA_MODEL: ${{ secrets.OLLAMA_MODEL || 'llama3.2' }}
+
       - name: 📈 Upload CTRF Report
         if: always() && steps.should-run.outputs.should_run == 'true'
         uses: actions/upload-artifact@v4
@@ -268,6 +308,66 @@ jobs:
           OPENAI_MODEL: ${{ secrets.OPENAI_MODEL || 'gpt-4o' }}
           OLLAMA_MODEL: ${{ secrets.OLLAMA_MODEL || 'llama3.2' }}
 
+      - name: 📋 Display AI Analysis Summary in Workflow
+        if: always()
+        run: |
+          echo "============================================================"
+          echo "🤖 AI TEST ANALYSIS SUMMARY"
+          echo "============================================================"
+          
+          if [ -f "test-results/ctrf-report.json" ]; then
+            # Extract test summary from CTRF report
+            PASSED=$(cat test-results/ctrf-report.json | jq -r '.results.summary.passed // 0')
+            FAILED=$(cat test-results/ctrf-report.json | jq -r '.results.summary.failed // 0') 
+            SKIPPED=$(cat test-results/ctrf-report.json | jq -r '.results.summary.skipped // 0')
+            TOTAL=$(cat test-results/ctrf-report.json | jq -r '.results.summary.tests // 0')
+            DURATION=$(cat test-results/ctrf-report.json | jq -r '(.results.summary.stop - .results.summary.start) / 1000 | floor')
+            
+            echo "📊 TEST RESULTS:"
+            echo "   ✅ Passed:  $PASSED"
+            echo "   ❌ Failed:  $FAILED" 
+            echo "   ⏭️ Skipped: $SKIPPED"
+            echo "   📊 Total:   $TOTAL"
+            echo "   ⏱️ Duration: ${DURATION}s"
+            echo ""
+            
+            # Display failed tests with AI analysis
+            if [ "$FAILED" -gt 0 ]; then
+              echo "🔍 FAILED TESTS WITH AI INSIGHTS:"
+              echo "============================================================"
+              
+              # Extract failed tests and their AI analysis from CTRF
+              cat test-results/ctrf-report.json | jq -r '
+                .results.tests[] | 
+                select(.status == "failed") | 
+                "🚨 Test: " + .name + "\n" +
+                "   Suite: " + (.suite // "N/A") + "\n" +
+                "   Duration: " + (.duration | tostring) + "ms\n" +
+                if .ai then "   🤖 AI Analysis: " + (.ai | gsub("\n"; "\n      ")) + "\n" else "   🤖 AI Analysis: Not available\n" end +
+                "   ────────────────────────────────────────\n"
+              '
+            else
+              echo "🎉 All tests passed! No failures to analyze."
+            fi
+            
+            # Display overall AI summary if available
+            OVERALL_AI=$(cat test-results/ctrf-report.json | jq -r '.results.extra.ai // empty')
+            if [ ! -z "$OVERALL_AI" ]; then
+              echo ""
+              echo "📋 OVERALL AI SUMMARY:"
+              echo "============================================================"
+              echo "$OVERALL_AI"
+            fi
+            
+          else
+            echo "❌ No test results found to display"
+          fi
+          
+          echo ""
+          echo "============================================================"
+          echo "📁 Full AI report available in artifacts: 'comprehensive-ai-analysis'"
+          echo "============================================================"
+
       - name: 📋 Upload Comprehensive AI Analysis
         if: always()
         uses: actions/upload-artifact@v4
@@ -287,6 +387,7 @@ jobs:
             echo "TEST_SUMMARY<<EOF" >> $GITHUB_ENV
             cat test-results/ctrf-report.json | jq -r '
               .results.summary as $summary |
+              .results.tests as $tests |
               "## 🎭 Playwright Test Results\n\n" +
               "| Metric | Value |\n" +
               "|--------|---------|\n" +
@@ -295,8 +396,14 @@ jobs:
               "| ⏭️ Skipped | \($summary.skipped) |\n" +
               "| 📊 Total | \($summary.tests) |\n" +
               "| ⏱️ Duration | \(($summary.stop - $summary.start) / 1000 | floor)s |\n\n" +
-              "**Environment:** " + (env.TEST_ENV // "staging") + "\n" +
-              "**AI Analysis:** Available in artifacts 🤖"
+              "**Environment:** " + (env.TEST_ENV // "staging") + "\n\n" +
+              (if $summary.failed > 0 then 
+                "### 🤖 AI Analysis Summary\n\n" +
+                ([$tests[] | select(.status == "failed")] | map("- **" + .name + "**: " + (if .ai then (.ai | split("\n")[0] | .[0:100] + (if length > 100 then "..." else "" end)) else "Analysis pending" end)) | join("\n")) + "\n\n"
+              else 
+                "### 🎉 All Tests Passed!\nNo failures to analyze.\n\n" 
+              end) +
+              "📁 **Full AI Report:** Download `comprehensive-ai-analysis` artifact for detailed insights"
             ' >> $GITHUB_ENV
             echo "EOF" >> $GITHUB_ENV
           else
@@ -382,5 +489,9 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: testSummary + "\n\n🔗 **Download AI Analysis:** Check the 'comprehensive-ai-analysis' artifact for detailed AI-powered test insights."
+              body: testSummary + "\n\n" +
+                    "---\n" +
+                    "🤖 **AI-Powered Testing**: This workflow includes intelligent test analysis.\n" +
+                    "📋 **Workflow Logs**: Check the workflow steps for immediate AI insights.\n" +
+                    "📦 **Artifacts**: Download detailed reports from the workflow artifacts."
             });
