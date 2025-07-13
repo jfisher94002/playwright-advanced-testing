@@ -74,33 +74,47 @@ jobs:
       fail-fast: false
       matrix:
         browser: [chromium, firefox, webkit]
-        exclude:
-          - browser: ${{ github.event.inputs.browser != 'all' && github.event.inputs.browser != matrix.browser && 'excluded' || 'included' }}
     
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
+        
+      - name: 🔍 Check if browser should run
+        id: should-run
+        run: |
+          BROWSER="${{ matrix.browser }}"
+          INPUT_BROWSER="${{ github.event.inputs.browser || 'all' }}"
+          
+          if [[ "$INPUT_BROWSER" == "all" || "$INPUT_BROWSER" == "$BROWSER" ]]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: 🔧 Setup Node.js
+        if: steps.should-run.outputs.should_run == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: 📦 Restore dependencies
+        if: steps.should-run.outputs.should_run == 'true'
         uses: actions/cache@v3
         with:
           path: node_modules
           key: ${{ needs.build.outputs.cache-key }}
 
       - name: 📦 Install dependencies (fallback)
+        if: steps.should-run.outputs.should_run == 'true' && steps.cache.outputs.cache-hit != 'true'
         run: npm ci
-        if: steps.cache.outputs.cache-hit != 'true'
 
       - name: 🎭 Install Playwright Browsers
+        if: steps.should-run.outputs.should_run == 'true'
         run: npx playwright install --with-deps ${{ matrix.browser }}
 
       - name: 🧪 Run Playwright tests
+        if: steps.should-run.outputs.should_run == 'true'
         run: npx playwright test --project=${{ matrix.browser }}
         env:
           TEST_ENV: ${{ github.event.inputs.environment || 'staging' }}
@@ -110,7 +124,7 @@ jobs:
           AWS_REGION: ${{ secrets.AWS_REGION || 'us-west-2' }}
 
       - name: 📊 Generate CTRF Summary
-        if: always()
+        if: always() && steps.should-run.outputs.should_run == 'true'
         run: |
           if [ -f "test-results/ctrf-report.json" ]; then
             npm run ctrf:summary
@@ -119,7 +133,7 @@ jobs:
           fi
 
       - name: 🤖 Generate AI Analysis
-        if: always()
+        if: always() && steps.should-run.outputs.should_run == 'true'
         run: |
           if [ -f "test-results/ctrf-report.json" ]; then
             echo "Generating AI analysis for test results..."
@@ -141,7 +155,7 @@ jobs:
           OLLAMA_MODEL: ${{ secrets.OLLAMA_MODEL || 'llama3.2' }}
 
       - name: 📈 Upload CTRF Report
-        if: always()
+        if: always() && steps.should-run.outputs.should_run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ctrf-report-${{ matrix.browser }}
@@ -151,7 +165,7 @@ jobs:
           retention-days: 30
 
       - name: 🤖 Upload AI Analysis Report
-        if: always()
+        if: always() && steps.should-run.outputs.should_run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ai-report-${{ matrix.browser }}
@@ -161,7 +175,7 @@ jobs:
           retention-days: 30
 
       - name: 📋 Upload Playwright Report
-        if: always()
+        if: always() && steps.should-run.outputs.should_run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report-${{ matrix.browser }}
@@ -169,7 +183,7 @@ jobs:
           retention-days: 30
 
       - name: 📸 Upload Screenshots
-        if: failure()
+        if: failure() && steps.should-run.outputs.should_run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: screenshots-${{ matrix.browser }}
