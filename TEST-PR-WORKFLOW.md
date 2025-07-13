@@ -1,7 +1,12 @@
 # 
 
+## Purpose
+
+This file is created to test our GitHub Pull Request workflow configuration.
+🧪 Test PR Workflow Verification
+
 **Purpose**: Workflow validation
-**Author**: Senior SDET  
+**Author**: Jonathan  
 **Created**: July 12, 2025
 
 This test verifies our enterprise-grade GitHub collaboration setup is working as expected.
@@ -27,8 +32,3 @@ This test verifies our enterprise-grade GitHub collaboration setup is working as
 - Validate PR template usage
 - Test CODEOWNERS functionality
 - Verify branch protection rules
-
-## Purpose
-
-This file is created to test our GitHub Pull Request workflow configuration.
-🧪 Test PR Workflow Verification
