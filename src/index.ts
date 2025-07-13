@@ -26,6 +26,7 @@ import { geminiFailedTestSummary } from './models/gemini';
 import { perplexityFailedTestSummary } from './models/perplexity';
 import { openRouterFailedTestSummary } from './models/openrouter';
 import { ollamaFailedTestSummary } from './models/ollama';
+import { bedrockFailedTestSummary } from './models/bedrock';
 import { FAILED_TEST_SUMMARY_SYSTEM_PROMPT_CURRENT } from './constants';
 
 export interface Arguments {
@@ -210,6 +211,21 @@ const argv: Arguments = yargs(hideBin(process.argv))
             });
         }
     )
+    .command(
+        'bedrock <file>',
+        'Generate test summary from a CTRF report using AWS Bedrock',
+        (yargs) => {
+            return yargs.positional('file', {
+                describe: 'Path to the CTRF file',
+                type: 'string',
+            })
+            .option('model', {
+                describe: 'Bedrock model to use',
+                type: 'string',
+                default: 'anthropic.claude-3-sonnet-20240229-v1:0',
+            });
+        }
+    )
     .option('systemPrompt', {
         describe: 'System prompt to guide the AI',
         type: 'string',
@@ -350,6 +366,15 @@ if (argv._.includes('openai') && argv.file) {
     } catch (error) {
         console.error('Failed to read file:', error);
     }
+} else if (argv._.includes('bedrock') && argv.file) {
+    try {
+        const report = validateCtrfFile(argv.file);
+        if (report !== null) {
+            bedrockFailedTestSummary(report, argv, file, true);
+        }
+    } catch (error) {
+        console.error('Failed to read file:', error);
+    }
 } 
 
-export { openAIFailedTestSummary, claudeFailedTestSummary, azureFailedTestSummary, grokFailedTestSummary, deepseekFailedTestSummary, mistralFailedTestSummary, geminiFailedTestSummary, perplexityFailedTestSummary, openRouterFailedTestSummary, ollamaFailedTestSummary };
+export { openAIFailedTestSummary, claudeFailedTestSummary, azureFailedTestSummary, grokFailedTestSummary, deepseekFailedTestSummary, mistralFailedTestSummary, geminiFailedTestSummary, perplexityFailedTestSummary, openRouterFailedTestSummary, ollamaFailedTestSummary, bedrockFailedTestSummary };

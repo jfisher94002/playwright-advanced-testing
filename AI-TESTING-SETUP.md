@@ -137,6 +137,7 @@ The test failed because the expected title "This title does not exist"
 🔄 Generating AI insights with Ollama...
 
 # ❌ Failed tests to analyze: 1
+
 📊 Processing 4 tests...
 
 🤖 AI Test Report Generator (Ollama)
@@ -192,4 +193,160 @@ Your Playwright testing framework now includes **AI-powered test analysis** usin
 
 ## 🎉 What's Now Integrated
  🤖 AI Test Reporting with Ollama - Complete Setup
+```md
+## 🚀 AWS Bedrock Integration (Cloud AI Alternative)
+
+For teams preferring cloud-based AI with enterprise features, AWS Bedrock provides a powerful alternative to local Ollama:
+
+### 📋 Prerequisites
+- AWS Account with Bedrock access
+- Configured AWS credentials (AWS CLI, environment variables, or IAM roles)
+- Appropriate Bedrock model permissions
+
+### 🔧 Setup AWS Credentials
+
+**Option 1: Environment Variables**
+```bash
+export AWS_ACCESS_KEY_ID=your_access_key
+export AWS_SECRET_ACCESS_KEY=your_secret_key
+export AWS_REGION=us-east-1
+```
+
+**Option 2: AWS CLI Configuration**
+```bash
+aws configure
+```
+
+**Option 3: IAM Roles (for EC2/Lambda/GitHub Actions)**
+- No additional configuration needed when running on AWS infrastructure
+
+### 🎯 Supported Bedrock Models
+
+#### Anthropic Claude Models
+- `anthropic.claude-3-sonnet-20240229-v1:0` (Default)
+- `anthropic.claude-3-haiku-20240307-v1:0`
+- `anthropic.claude-3-opus-20240229-v1:0`
+- `anthropic.claude-3-5-sonnet-20240620-v1:0`
+
+#### Amazon Titan Models
+- `amazon.titan-text-express-v1`
+- `amazon.titan-text-lite-v1`
+
+#### AI21 Jurassic Models
+- `ai21.j2-mid-v1`
+- `ai21.j2-ultra-v1`
+
+#### Cohere Command Models
+- `cohere.command-text-v14`
+- `cohere.command-light-text-v14`
+
+#### Meta Llama Models
+- `meta.llama2-13b-chat-v1`
+- `meta.llama2-70b-chat-v1`
+
+### 🚀 Usage
+
+**Basic Bedrock Analysis:**
+```bash
+npm run ai:bedrock
+```
+
+**With Custom Model:**
+```bash
+BEDROCK_MODEL="anthropic.claude-3-opus-20240229-v1:0" npm run ai:bedrock
+```
+
+**Direct CLI Usage:**
+```bash
+node dist/index.js bedrock "test-results/ctrf-report.json" --model "anthropic.claude-3-sonnet-20240229-v1:0" --log --html
+```
+
+**Full Test with Bedrock:**
+```bash
+npm run test:bedrock
+```
+
+### 🔐 Security Considerations
+
+- ✅ **AWS IAM** - Fine-grained access control
+- ✅ **VPC Support** - Keep traffic within your network
+- ✅ **Encryption** - Data encrypted in transit and at rest
+- ✅ **Audit Logs** - Full CloudTrail logging
+- ✅ **Compliance** - SOC, HIPAA, PCI DSS certified
+
+### 💰 Cost Management
+
+Bedrock uses a pay-per-token model:
+- **Claude Sonnet**: ~$3-8 per 1M tokens
+- **Titan Express**: ~$1-2 per 1M tokens
+- **Typical test analysis**: 100-500 tokens per failure
+
+**Cost Estimation:**
+- 10 failed tests ≈ 5,000 tokens ≈ $0.02-0.04
+- 100 failed tests ≈ 50,000 tokens ≈ $0.20-0.40
+
+### ⚙️ Configuration in Workflows
+
+**GitHub Actions with Bedrock:**
+```yaml
+- name: 🤖 Generate AI Analysis with Bedrock
+  run: AI_PROVIDER=bedrock npm run ai:report
+  env:
+    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    AWS_REGION: us-east-1
+    BEDROCK_MODEL: anthropic.claude-3-sonnet-20240229-v1:0
+```
+
+### 🆚 Bedrock vs Ollama Comparison
+
+| Feature | Ollama (Local) | AWS Bedrock (Cloud) |
+|---------|---------------|-------------------|
+| **Cost** | Free | Pay-per-use (~$0.02-0.40/run) |
+| **Privacy** | 100% Local | AWS Infrastructure |
+| **Performance** | Hardware dependent | Consistent cloud performance |
+| **Models** | Open source models | Enterprise AI models |
+| **Offline** | ✅ Works offline | ❌ Requires internet |
+| **Setup** | Local installation | AWS credentials |
+| **Scaling** | Limited by hardware | Auto-scaling |
+| **Enterprise** | Limited support | Full enterprise features |
+
+### 🔧 Environment Variables
+
+```bash
+# AI Provider Selection
+AI_PROVIDER=bedrock                    # Use Bedrock instead of Ollama
+
+# AWS Configuration  
+AWS_REGION=us-east-1                   # AWS region for Bedrock
+AWS_ACCESS_KEY_ID=your_key_id          # AWS credentials
+AWS_SECRET_ACCESS_KEY=your_secret      # AWS secret key
+
+# Bedrock Settings
+BEDROCK_MODEL=anthropic.claude-3-sonnet-20240229-v1:0  # Model selection
+```
+
+### 🚨 Troubleshooting
+
+**Common Issues:**
+
+1. **AccessDeniedException**
+   ```bash
+   # Solution: Enable Bedrock model access in AWS Console
+   # Go to Bedrock Console → Model Access → Request Access
+   ```
+
+2. **Region Not Supported**
+   ```bash
+   # Solution: Use supported regions (us-east-1, us-west-2, eu-west-1)
+   export AWS_REGION=us-east-1
+   ```
+
+3. **Quota Exceeded**
+   ```bash
+   # Solution: Request quota increase in AWS Service Quotas
+   # Or reduce maxMessages in configuration
+   ```
+
+---
 ```

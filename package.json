@@ -13,7 +13,10 @@
     "ctrf:summary": "ctrf summary test-results/ctrf-report.json",
     "ctrf:view": "ctrf view test-results/ctrf-report.json",
     "ai:report": "node scripts/ai-report.js",
+    "ai:bedrock": "AI_PROVIDER=bedrock node scripts/ai-report.js",
+    "ai:ollama": "AI_PROVIDER=ollama node scripts/ai-report.js",
     "test:ai": "playwright test && node scripts/ctrf-summary.js && node scripts/ai-report.js",
+    "test:bedrock": "playwright test && node scripts/ctrf-summary.js && npm run ai:bedrock",
     "build": "tsc",
     "ai-ctrf": "node dist/index.js"
   },
@@ -36,6 +39,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.2",
+    "@aws-sdk/client-bedrock-runtime": "^3.844.0",
     "@google/generative-ai": "^0.21.0",
     "openai": "^4.57.0",
     "yargs": "^17.7.2"

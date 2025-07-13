@@ -8,6 +8,7 @@ import { deepseekAI } from "./models/deepseek";
 import { gemini } from "./models/gemini";
 import { perplexity } from "./models/perplexity";
 import { openRouter } from "./models/openrouter";
+import { bedrockAI } from "./models/bedrock";
 // import { CONSOLIDATED_SUMMARY_SYSTEM_PROMPT } from "./constants";
 
 export async function generateConsolidatedSummary(report: CtrfReport, model: string, args: Arguments) {
@@ -63,6 +64,8 @@ export async function generateConsolidatedSummary(report: CtrfReport, model: str
         consolidatedSummary = await perplexity(systemPrompt, consolidatedPrompt, args) || ""
     } else if (model === 'openrouter') {
         consolidatedSummary = await openRouter(systemPrompt, consolidatedPrompt, args) || ""
+    } else if (model === 'bedrock') {
+        consolidatedSummary = await bedrockAI(systemPrompt, consolidatedPrompt, args) || ""
     }
 
     if (consolidatedSummary) {

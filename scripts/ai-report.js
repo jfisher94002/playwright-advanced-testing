@@ -18,13 +18,23 @@ if (fs.existsSync(ctrfReportPath)) {
     console.log(`❌ Failed tests to analyze: ${summary.failed}`);
     
     if (summary.failed > 0) {
-      console.log('\n🔄 Generating AI insights with Ollama...');
+      console.log('\n🔄 Generating AI insights...');
       
       try {
-        // Run the AI analysis using our built dist files
-        const aiCommand = `node ${path.join(__dirname, '..', 'dist', 'index.js')} ollama "${ctrfReportPath}" --model llama3.2 --log --html`;
+        // Check if we should use Bedrock or Ollama
+        const provider = process.env.AI_PROVIDER || 'ollama';
+        let aiCommand;
         
-        console.log('💭 Running AI analysis...');
+        if (provider === 'bedrock') {
+          const model = process.env.BEDROCK_MODEL || 'anthropic.claude-3-sonnet-20240229-v1:0';
+          aiCommand = `node ${path.join(__dirname, '..', 'dist', 'index.js')} bedrock "${ctrfReportPath}" --model "${model}" --log --html`;
+          console.log('💭 Running AWS Bedrock AI analysis...');
+        } else {
+          const model = process.env.OLLAMA_MODEL || 'llama3.2';
+          aiCommand = `node ${path.join(__dirname, '..', 'dist', 'index.js')} ollama "${ctrfReportPath}" --model "${model}" --log --html`;
+          console.log('💭 Running Ollama AI analysis...');
+        }
+        
         execSync(aiCommand, { stdio: 'inherit' });
         
         console.log('\n✅ AI analysis complete!');
