@@ -59,7 +59,7 @@ describe('HTML Report Generator', () => {
     jest.clearAllMocks();
     mockFs.writeFileSync.mockImplementation(() => {});
     mockFs.existsSync.mockReturnValue(true);
-    mockFs.mkdirSync.mockImplementation(() => '');
+    mockFs.mkdirSync.mockImplementation(() => undefined);
   });
 
   describe('generateHtmlReport', () => {
