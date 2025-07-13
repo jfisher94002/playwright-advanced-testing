@@ -206,7 +206,7 @@ describe('HTML Report Generator', () => {
         { results: { summary: {}, tests: [], tool: {} } }
       ];
 
-      invalidReports.forEach((report, index) => {
+      invalidReports.forEach((report) => {
         expect(() => generateHtmlReport(report as any)).toThrow();
       });
     });
