@@ -1,6 +1,15 @@
 # GitHub PR Workflow Test
 
-*This test demonstrates our Senior SDET-level GitHub workflow configuration is properly protecting the main branch and enforcing code quality standards.*
+## Test Objectives
+
+```sh
+**Created**: July 12, 2025
+**Author**:   jonathan
+**Purpose**: Verify GitHub repository rules and PR workflow configuration
+🧪 Pull Request Workflow Test
+```
+
+*This test demonstrates our enterprise-grade GitHub workflow configuration is properly protecting the main branch and enforcing code quality standards.*
 
 ---
 
@@ -34,10 +43,3 @@ The repository has **5 required status checks** but the workflow may not provide
 ### ✅ Expected Behavior
 
 This test file validates that our enterprise-grade GitHub collaboration setup works correctly:
-
-## Test Objectives
-
-**Created**: July 12, 2025
-**Author**: Senior SDET  
-**Purpose**: Verify GitHub repository rules and PR workflow configuration
-🧪 Pull Request Workflow Test
