@@ -154,6 +154,51 @@ jobs:
           OPENAI_MODEL: ${{ secrets.OPENAI_MODEL || 'gpt-4o' }}
           OLLAMA_MODEL: ${{ secrets.OLLAMA_MODEL || 'llama3.2' }}
 
+      - name: 📊 Display AI Insights Summary  
+        if: always() && steps.should-run.outputs.should_run == 'true'
+        run: |
+          echo "=================================================================================="
+          echo "🤖 AI TEST ANALYSIS SUMMARY (${{ matrix.browser }})"
+          echo "=================================================================================="
+          
+          if [ -f "test-results/ctrf-report.json" ]; then
+            # Extract test summary
+            PASSED=$(cat test-results/ctrf-report.json | jq -r '.results.summary.passed // 0')
+            FAILED=$(cat test-results/ctrf-report.json | jq -r '.results.summary.failed // 0') 
+            TOTAL=$(cat test-results/ctrf-report.json | jq -r '.results.summary.tests // 0')
+            
+            echo "📊 Test Results: $PASSED passed, $FAILED failed, $TOTAL total"
+            echo ""
+            
+            if [ "$FAILED" -gt 0 ]; then
+              echo "❌ Failed Test Analysis:"
+              echo "----------------------------------------"
+              
+              # Show AI analysis for failed tests (first 2)
+              cat test-results/ctrf-report.json | jq -r '
+                .results.tests[] | 
+                select(.status == "failed") | 
+                select(.ai != null) |
+                "🔍 " + .name + ":\n" + (.ai | split("**")[1:] | join("") | split("\n")[0:3] | join(" ") | .[0:200]) + "...\n"
+              ' | head -20
+              
+              if [ -f "ai-test-report-*.html" ]; then
+                echo "📄 Full AI report available in workflow artifacts"
+              fi
+            else
+              echo "✅ All tests passed! No AI analysis needed."
+            fi
+          else
+            echo "⚠️  No test results available for AI analysis"
+          fi
+          
+          echo "=================================================================================="
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLAUDE_MODEL: ${{ secrets.CLAUDE_MODEL || 'claude-3-5-sonnet-20240620' }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL || 'gpt-4o' }}
+          OLLAMA_MODEL: ${{ secrets.OLLAMA_MODEL || 'llama3.2' }}
+
       - name: 🎯 Display Browser-Specific AI Insights
         if: always() && steps.should-run.outputs.should_run == 'true'
         run: |
@@ -307,6 +352,71 @@ jobs:
           CLAUDE_MODEL: ${{ secrets.CLAUDE_MODEL || 'claude-3-5-sonnet-20240620' }}
           OPENAI_MODEL: ${{ secrets.OPENAI_MODEL || 'gpt-4o' }}
           OLLAMA_MODEL: ${{ secrets.OLLAMA_MODEL || 'llama3.2' }}
+
+      - name: 🎯 Display Comprehensive AI Analysis
+        run: |
+          echo "=================================================================================="
+          echo "🤖 COMPREHENSIVE AI TEST ANALYSIS - ALL BROWSERS"
+          echo "=================================================================================="
+          
+          if [ -f "test-results/ctrf-report.json" ]; then
+            # Extract comprehensive test summary
+            PASSED=$(cat test-results/ctrf-report.json | jq -r '.results.summary.passed // 0')
+            FAILED=$(cat test-results/ctrf-report.json | jq -r '.results.summary.failed // 0')
+            SKIPPED=$(cat test-results/ctrf-report.json | jq -r '.results.summary.skipped // 0') 
+            TOTAL=$(cat test-results/ctrf-report.json | jq -r '.results.summary.tests // 0')
+            DURATION=$(cat test-results/ctrf-report.json | jq -r '(.results.summary.stop - .results.summary.start) / 1000 | floor')
+            
+            echo "📊 Final Test Results:"
+            echo "   ✅ Passed: $PASSED"
+            echo "   ❌ Failed: $FAILED" 
+            echo "   ⏭️ Skipped: $SKIPPED"
+            echo "   📊 Total: $TOTAL"
+            echo "   ⏱️ Duration: ${DURATION}s"
+            echo ""
+            
+            if [ "$FAILED" -gt 0 ]; then
+              echo "🔍 AI Analysis of Failed Tests:"
+              echo "----------------------------------------"
+              
+              # Show detailed AI analysis summary
+              cat test-results/ctrf-report.json | jq -r '
+                .results.tests[] | 
+                select(.status == "failed") | 
+                select(.ai != null) |
+                "❌ " + .name + " (" + (.suite // "unknown") + ")" + "\n" +
+                "   Duration: " + (.duration | tostring) + "ms\n" + 
+                "   AI Analysis: " + (.ai | 
+                  split("**Root Cause:**")[1]? // 
+                  split("**Technical Details:**")[0]? //
+                  split("\n")[0:2] | join(" ") | .[0:150]
+                ) + "...\n"
+              '
+              
+              echo ""
+              echo "📊 Overall AI Summary:"
+              if [ -f "test-results/ctrf-report.json" ]; then
+                OVERALL_AI=$(cat test-results/ctrf-report.json | jq -r '.results.extra.ai // empty')
+                if [ ! -z "$OVERALL_AI" ]; then
+                  echo "$OVERALL_AI" | head -5
+                else
+                  echo "   🔄 Individual test analyses available above"
+                fi
+              fi
+              
+              echo ""
+              echo "📄 Complete analysis available in 'comprehensive-ai-analysis' artifact"
+              echo "🌐 Download the HTML report for full interactive analysis"
+              
+            else
+              echo "🎉 All tests passed across all browsers!"
+              echo "✨ No issues detected - great job!"
+            fi
+          else
+            echo "⚠️  No consolidated test results available"
+          fi
+          
+          echo "=================================================================================="
 
       - name: 📋 Display AI Analysis Summary in Workflow
         if: always()
@@ -491,7 +601,8 @@ jobs:
               repo: context.repo.repo,
               body: testSummary + "\n\n" +
                     "---\n" +
-                    "🤖 **AI-Powered Testing**: This workflow includes intelligent test analysis.\n" +
-                    "📋 **Workflow Logs**: Check the workflow steps for immediate AI insights.\n" +
-                    "📦 **Artifacts**: Download detailed reports from the workflow artifacts."
+                    "🤖 **AI-Powered Analysis**: Intelligent test failure analysis included\n" +
+                    "📋 **Workflow Logs**: Real-time AI insights visible in workflow output\n" +
+                    "📦 **Download Reports**: Complete analysis available in workflow artifacts\n" +
+                    "� **Quick Access**: Check the 'Display AI Analysis' steps for immediate insights"
             });
