@@ -105,6 +105,9 @@ jobs:
         env:
           TEST_ENV: ${{ github.event.inputs.environment || 'staging' }}
           CI: true
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-west-2' }}
 
       - name: 📊 Generate CTRF Summary
         if: always()
@@ -177,6 +180,12 @@ jobs:
             echo "No CTRF reports found, skipping AI analysis"
           fi
         continue-on-error: true
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-west-2' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       - name: 📋 Upload AI Analysis Report
         if: always()

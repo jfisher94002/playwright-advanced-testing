@@ -1,6 +1,72 @@
 /* eslint-disable */
 import type { CtrfReport } from '../types/ctrf'
 import fs from 'fs'
+import { marked } from 'marked'
+
+// Configure marked for cleaner HTML output
+marked.setOptions({
+  breaks: true,
+  gfm: true
+})
+
+function formatAiAnalysis(text: string): string {
+  // Convert markdown to HTML while preserving structure
+  return marked(text) as string
+}
+
+function cleanErrorMessage(text: string): string {
+  if (!text) {
+    return text
+  }
+  
+  // Remove ANSI color codes and escape sequences
+  return text
+    .replace(/\[(\d+)m/g, '') // Remove ANSI color codes like [31m, [39m
+    .replace(/\[(\d+);(\d+)m/g, '') // Remove complex ANSI codes
+    .replace(/\[\d+m/g, '') // Remove any remaining ANSI codes
+    .replace(/\[2m/g, '') // Remove dim text codes
+    .replace(/\[22m/g, '') // Remove normal intensity codes
+    .replace(/\[7m/g, '') // Remove reverse video codes
+    .replace(/\[27m/g, '') // Remove normal video codes
+    .trim()
+}
+
+function formatErrorForDisplay(message: string, trace?: string): { message: string; trace?: string } {
+  const cleanMessage = cleanErrorMessage(message)
+  const cleanTrace = trace ? cleanErrorMessage(trace) : undefined
+  
+  // Extract key information for better display
+  let formattedMessage = cleanMessage
+  
+  // Format timeout errors more clearly
+  if (cleanMessage.includes('Timed out') && cleanMessage.includes('waiting for')) {
+    const timeoutMatch = cleanMessage.match(/Timed out (\d+)ms waiting for/)
+    const expectedMatch = cleanMessage.match(/Expected string: "([^"]*)"/)
+    const receivedMatch = cleanMessage.match(/Received string: "([^"]*)"/)
+    
+    if (timeoutMatch) {
+      formattedMessage = `⏱️ Timeout Error (${timeoutMatch[1]}ms)\n`
+      
+      if (expectedMatch && receivedMatch) {
+        formattedMessage += `\n📝 Title Mismatch:\n`
+        formattedMessage += `Expected: "${expectedMatch[1]}"\n`
+        formattedMessage += `Received: "${receivedMatch[1]}"\n`
+        
+        // Highlight the difference
+        const expected = expectedMatch[1]
+        const received = receivedMatch[1]
+        if (expected !== received) {
+          formattedMessage += `\n🔍 The main difference appears to be in the spelling: "${expected}" vs "${received}"`
+        }
+      }
+    }
+  }
+  
+  return {
+    message: formattedMessage,
+    trace: cleanTrace
+  }
+}
 
 export function generateHtmlReport(
   report: CtrfReport,
@@ -41,7 +107,8 @@ export function generateHtmlReport(
         .ai-summary { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; }
         .ai-summary h4 { margin: 0 0 1rem 0; }
         .error-details { background: #fff; border: 1px solid #dee2e6; border-radius: 4px; padding: 1rem; margin-top: 1rem; font-family: monospace; font-size: 0.875rem; }
-        .error-message { color: #dc3545; font-weight: 600; margin-bottom: 0.5rem; }
+        .error-message { color: #dc3545; font-weight: 600; margin-bottom: 0.5rem; line-height: 1.4; }
+        .error-trace { color: #6c757d; margin-top: 0.5rem; line-height: 1.3; }
         .overall-summary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 8px; margin-top: 2rem; }
     </style>
 </head>
@@ -103,15 +170,20 @@ export function generateHtmlReport(
                     
                     ${test.message != null || test.trace != null ? `
                     <div class="error-details">
-                        ${test.message != null ? `<div class="error-message">${test.message}</div>` : ''}
-                        ${test.trace != null ? `<div class="error-trace">${test.trace}</div>` : ''}
+                        ${(() => {
+                          const formatted = formatErrorForDisplay(test.message || '', test.trace || '')
+                          return `
+                            ${formatted.message ? `<div class="error-message">${formatted.message.replace(/\n/g, '<br>')}</div>` : ''}
+                            ${formatted.trace && formatted.trace !== formatted.message ? `<div class="error-trace"><strong>Stack Trace:</strong><br>${formatted.trace.replace(/\n/g, '<br>')}</div>` : ''}
+                          `
+                        })()}
                     </div>
                     ` : ''}
                     
                     ${test.ai != null ? `
                     <div class="ai-summary">
                         <h4>🤖 AI Analysis</h4>
-                        <p>${test.ai}</p>
+                        <div>${formatAiAnalysis(test.ai)}</div>
                     </div>
                     ` : ''}
                 </div>
@@ -147,7 +219,7 @@ export function generateHtmlReport(
         ${report.results.extra?.ai != null ? `
         <div class="overall-summary">
             <h3>📋 Overall AI Summary</h3>
-            <p>${report.results.extra.ai}</p>
+            <div>${formatAiAnalysis(report.results.extra.ai)}</div>
         </div>
         ` : ''}
         

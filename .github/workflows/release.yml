@@ -41,6 +41,24 @@ jobs:
       - name: 🧪 Run critical path tests
         run: npx playwright test --grep="@critical"
 
+      - name: 📊 Generate CTRF summary
+        if: always()
+        run: npm run ctrf:summary
+
+      - name: 🤖 Generate AI analysis with Bedrock
+        if: always()
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-west-2' }}
+        run: |
+          if [ -n "$AWS_ACCESS_KEY_ID" ] && [ -n "$AWS_SECRET_ACCESS_KEY" ]; then
+            echo "🔄 Running AI analysis with AWS Bedrock..."
+            npm run ai:bedrock --log || echo "⚠️ AI analysis failed - continuing with release"
+          else
+            echo "⚠️ AWS credentials not configured - skipping AI analysis"
+          fi
+
       - name: 📊 Generate release validation report
         if: always()
         run: |
@@ -50,10 +68,26 @@ jobs:
           echo "Date: $(date)" >> validation-report.md
           echo "" >> validation-report.md
           
-          if [ -f "ctrf/ctrf-report.json" ]; then
+          if [ -f "test-results/ctrf-report.json" ]; then
             echo "✅ Tests executed successfully" >> validation-report.md
+            echo "" >> validation-report.md
+            echo "## 📊 Test Summary" >> validation-report.md
+            echo "\`\`\`json" >> validation-report.md
+            cat test-results/ctrf-report.json | jq '.results.summary' >> validation-report.md 2>/dev/null || echo "Summary not available" >> validation-report.md
+            echo "\`\`\`" >> validation-report.md
           else
             echo "❌ Test execution failed" >> validation-report.md
+          fi
+          
+          # Add AI analysis summary if available
+          if [ -f "test-results/ctrf-report.json" ]; then
+            AI_TESTS=$(cat test-results/ctrf-report.json | jq '[.results.tests[] | select(.ai != null)] | length' 2>/dev/null || echo "0")
+            if [ "$AI_TESTS" -gt 0 ]; then
+              echo "" >> validation-report.md
+              echo "## 🤖 AI Analysis" >> validation-report.md
+              echo "- Tests analyzed: $AI_TESTS" >> validation-report.md
+              echo "- AI insights generated for failed tests" >> validation-report.md
+            fi
           fi
 
       - name: 📋 Upload validation artifacts
@@ -63,7 +97,8 @@ jobs:
           name: release-validation-${{ github.ref_name }}
           path: |
             playwright-report/
-            ctrf/
+            test-results/
+            ai-test-report-*.html
             validation-report.md
           retention-days: 90
 
@@ -109,10 +144,23 @@ jobs:
           echo "" >> API.md
           echo "## Available Scripts" >> API.md
           echo "" >> API.md
-          echo "- \`npm test\` - Run all tests" >> API.md
+          echo "### Testing Commands" >> API.md
+          echo "- \`npm test\` - Run all tests with AI analysis" >> API.md
+          echo "- \`npm run test:only\` - Run tests without AI analysis" >> API.md
           echo "- \`npm run test:summary\` - Run tests with CTRF summary" >> API.md
-          echo "- \`npm run ai:report\` - Generate AI analysis" >> API.md
+          echo "- \`npm run test:bedrock\` - Run tests with Bedrock AI analysis" >> API.md
+          echo "" >> API.md
+          echo "### Reporting Commands" >> API.md
+          echo "- \`npm run ctrf:summary\` - Generate CTRF summary" >> API.md
           echo "- \`npm run ctrf:view\` - View CTRF reports" >> API.md
+          echo "- \`npm run ai:report\` - Generate AI analysis" >> API.md
+          echo "- \`npm run ai:bedrock\` - Generate Bedrock AI analysis" >> API.md
+          echo "" >> API.md
+          echo "### Debug Commands" >> API.md
+          echo "- \`npm run debug:bedrock:full\` - Comprehensive Bedrock diagnostics" >> API.md
+          echo "- \`npm run debug:bedrock\` - Basic Bedrock connectivity test" >> API.md
+          echo "- \`npm run bedrock:cli\` - Interactive Bedrock CLI" >> API.md
+          echo "- \`npm run bedrock:test\` - Quick Bedrock connectivity test" >> API.md
 
       - name: 📚 Update changelog
         run: |
@@ -121,9 +169,19 @@ jobs:
           echo "## [${{ github.ref_name }}] - $(date +%Y-%m-%d)" >> CHANGELOG.md
           echo "" >> CHANGELOG.md
           echo "### Added" >> CHANGELOG.md
-          echo "- Release validation pipeline" >> CHANGELOG.md
+          echo "- Release validation pipeline with AI analysis" >> CHANGELOG.md
+          echo "- AWS Bedrock integration for AI test analysis" >> CHANGELOG.md
+          echo "- Enhanced CTRF reporting in release pipeline" >> CHANGELOG.md
+          echo "- Comprehensive Bedrock debugging tools" >> CHANGELOG.md
+          echo "- Interactive Bedrock CLI for model testing" >> CHANGELOG.md
           echo "- Enhanced GitHub Actions workflows" >> CHANGELOG.md
-          echo "- Comprehensive testing and reporting" >> CHANGELOG.md
+          echo "- Automated AI insights for failed tests" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### Enhanced" >> CHANGELOG.md
+          echo "- Error handling for AWS Bedrock integration" >> CHANGELOG.md
+          echo "- Credential management with profile support" >> CHANGELOG.md
+          echo "- Detailed diagnostic and troubleshooting tools" >> CHANGELOG.md
+          echo "- Release artifacts now include AI analysis reports" >> CHANGELOG.md
 
       - name: 📤 Commit documentation updates
         run: |
@@ -153,12 +211,30 @@ jobs:
             - Security Scan: ${{ needs.security-scan.result == 'success' && '✅ Passed' || '❌ Failed' }}
             - Documentation: ${{ needs.documentation.result == 'success' && '✅ Updated' || '❌ Failed' }}
             
-            ### 📊 Test Results
-            Check the artifacts for detailed test reports and analysis.
+            ### 📊 Test Results & AI Analysis
+            This release includes:
+            - 🎭 Playwright test execution with CTRF reporting
+            - 🤖 AWS Bedrock AI analysis for failed tests
+            - 📈 Enhanced error diagnostics and troubleshooting
+            - 🔧 Interactive debugging tools for Bedrock integration
+            
+            Check the artifacts for:
+            - Detailed test reports (playwright-report/)
+            - CTRF standardized reports (test-results/)
+            - AI analysis insights (ai-reports/)
+            - Validation summary (validation-report.md)
+            
+            ### 🛠️ New Features
+            - AWS Bedrock integration with multiple model support
+            - Comprehensive debugging tools (\`npm run debug:bedrock:full\`)
+            - Interactive Bedrock CLI (\`npm run bedrock:cli\`)
+            - Enhanced error handling and credential management
+            - Automated AI insights in release pipeline
             
             ### 🔗 Links
             - [Release Page](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }})
             - [Validation Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            - [Bedrock Setup Guide](https://github.com/${{ github.repository }}/blob/main/BEDROCK-TROUBLESHOOTING.md)
             `;
             
             // Update the release description

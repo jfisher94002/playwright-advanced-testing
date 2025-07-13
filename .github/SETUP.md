@@ -1,254 +1,223 @@
 # 
 
-*This setup ensures your repository has professional-grade automation and protection configured.*
+*This setup ensures your repository has professional-grade automation with AI-powered analysis configured.*
 
 ---
 
-- [ ] PR template appears automatically
+- [AWS Bedrock Documentation](https://docs.aws.amazon.com/bedrock/)
+- [GitHub Actions Documentation](https://docs.github.com/en/actions)
+- [Bedrock Troubleshooting](../BEDROCK-TROUBLESHOOTING.md)
+- [CTRF Integration Guide](../CTRF-README.md)
+- [AI Testing Setup Guide](../AI-TESTING-SETUP.md)
+- [Main README](../README.md)
+
+## 📚 Additional Resources
+
+4. Review [Bedrock Troubleshooting Guide](../BEDROCK-TROUBLESHOOTING.md)
+5. Verify model access permissions in AWS console
+6. Check AWS service status and quotas
+7. Run local diagnostics: `npm run debug:bedrock:full`
+
+### AI Analysis Issues
+
+4. Check if any external dependencies (AWS, APIs) are accessible
+5. Ensure repository permissions allow Actions to run
+6. Verify all required secrets are set
+7. Check the Actions tab for detailed error logs
+
+### Workflow Failures
+
+## 🚨 Troubleshooting
+
+- [ ] Bedrock integration functions: `npm run debug:bedrock:full`
 - [ ] Issue templates are available
-- [ ] AI analysis works (if configured)
-- [ ] CTRF reports are generated
+- [ ] PR template appears automatically
 - [ ] Artifacts are uploaded correctly
+- [ ] CTRF reports are generated
+- [ ] AI analysis works (if AWS configured)
 - [ ] Required status checks appear
 - [ ] Workflows run successfully on push/PR
 - [ ] Branch protection rules are active
+- [ ] Repository secrets are configured
 
 After setup, verify everything works:
 
 ## ✅ Verification Checklist
 
+- **Rate limiting**: May occur with high test frequency - implement backoff
+- __Region issues__: Ensure `AWS_REGION` is set to a Bedrock-supported region
+- **Model access denied**: Request model access in AWS Bedrock console
+- **Missing AWS credentials**: Add required secrets to repository
+
+### Common CI Issues
+
+4. Test locally with: `npm run debug:bedrock:full`
+5. Review the workflow logs for specific error messages
+6. Verify the AWS account has Bedrock model access
+7. Check AWS credentials are properly set in repository secrets
+
+### If AI Analysis Fails in CI
+
+## 🔍 Debugging in CI/CD
+
+- ✅ Integration with CTRF reporting format
+- ✅ Error categorization and debugging hints
+- ✅ Consolidated summary reports
+- ✅ Actionable recommendations for fixes
+- ✅ Failed test analysis with root cause identification
+
+### AI Analysis Features
+
+3. `anthropic.claude-instant-v1` (backup)
+4. `anthropic.claude-3-haiku-20240307-v1:0` (fallback)
+5. `anthropic.claude-3-sonnet-20240229-v1:0` (default)
+   The release pipeline will attempt to use these models in order:
+
+### Bedrock Models Tested
+
+## 📊 AI Analysis Configuration
+
 ```md
-npm install -g @github/super-linter
-# Check workflow syntax (optional)
+});
+  // test implementation
+test('@regression Edge case handling', async ({ page }) => {
+// Regression tests
+
+});
+  // test implementation
+test('@e2e Complete user journey', async ({ page }) => {
+// End-to-end scenarios
+
+});
+  // test implementation
+test('@performance Page load time', async ({ page }) => {
+// Performance tests
+
+});
+  // test implementation
+test('@smoke Homepage loads', async ({ page }) => {
+// Smoke tests (quick validation)
+
+});
+  // test implementation
+test('@critical User login flow', async ({ page }) => {
+// Critical path tests (run in release pipeline)
+```javascript
+
+Use these annotations in your tests for workflow filtering:
+
+## 🎯 Test Annotations
+
+- Extended AI analysis
+- Performance benchmarks
+- Cross-browser and cross-environment testing
+- Scheduled comprehensive testing
+
+  - Documentation updates
+  - Security scanning
+  - AWS Bedrock AI analysis
+  - CTRF reporting
+  - Critical path tests with `@critical` annotation
+  - Smoke tests with `@smoke` annotation
+- Runs comprehensive validation including:
+- Triggers on version tags (v*)
+
+- Uploads test artifacts
+- Generates CTRF reports and AI analysis
+- Tests across multiple browsers (Chromium, Firefox, WebKit)
+- Runs on every push and PR
+
+## 🔧 Workflow Configuration
+
+```
 
 npm test
+
 # Run initial test to verify setup
 
+npm run debug:bedrock:full
+
+# Test Bedrock setup
+
+aws configure
+
+# Set up AWS credentials (Option 2: AWS CLI)
+
+export AWS_REGION="us-west-2"
+export AWS_SECRET_ACCESS_KEY="your-secret-key"
+export AWS_ACCESS_KEY_ID="your-access-key"
+
+# Set up AWS credentials (Option 1: Environment variables)
+
 npx playwright install
+
 # Install Playwright browsers
 
 npm install
+
 # Install dependencies
 
-cd playwright-advanced-testing
-git clone https://github.com/jfisher94002/playwright-advanced-testing.git
+cd <repository-name>
+git clone <repository-url>
+
 # Clone the repository
+
 ```bash
 
 Run these commands to set up your local environment:
 
 ## 🚀 Quick Setup Commands
 
-- `ready-to-merge` (green) - Ready for merging
-- `needs-review` (orange) - Needs code review
 - `in-progress` (blue) - Currently being worked on
+- `needs-review` (orange) - Needs code review
+- `ready-to-merge` (green) - Ready for merging
 
-- `priority-low` (yellow) - Low priority
-- `priority-medium` (orange) - Medium priority
-- `priority-high` (red) - High priority
+- `bedrock` (teal) - AWS Bedrock integration
+- `ai-analysis` (purple) - AI analysis related
+- `documentation` (green) - Documentation updates
+- `enhancement` (blue) - Feature requests
+- `bug` (red) - Bug reports
 
-- `automation` (green) - CI/CD and workflow related
-- `dependencies` (purple) - Dependency updates
-- `documentation` (yellow) - Improvements or additions to documentation
-- `enhancement` (blue) - New feature or request
-- `bug` (red) - Something isn't working
+- `low` (green) - Low priority
+- `medium` (yellow) - Medium priority
+- `high` (orange) - High priority
+- `critical` (red) - Critical issues requiring immediate attention
 
-Create these labels for better organization:
+## 🏷️ Repository Labels
 
-## 🏷️ Labels Setup
+- `🤖 AI Analysis`
+- `🧪 Smoke Tests`
+- `🔒 Security Scan`
+- `🎭 Playwright Tests`
 
-- ✅ Secret scanning alerts
-- ✅ Dependabot security updates
-- ✅ Dependabot alerts
-- ✅ Dependency graph
-**Settings > Security & analysis**:
+   - ✅ Restrict pushes that create files larger than 100MB
+   - ✅ Include administrators
+   - ✅ Require up-to-date branches
+   - ✅ Require status checks to pass
+2. Add rule for `main` branch:
+1. Go to Settings → Branches
 
-- ✅ Enable Discussions for community Q&A
-**Settings > Features**:
-
-## 📊 Repository Insights
-
-```
-
-Closes #[issue_number]
-
-## 🔗 Related Issues
-
-- [ ] No breaking changes (or documented)
-- [ ] Tests added/updated
-- [ ] Documentation updated
-- [ ] Self-review completed
-- [ ] Code follows project style guidelines
-
-## ✅ Checklist
-
-Add screenshots here.
-
-## 📸 Screenshots (if applicable)
-
-- [ ] Manual testing completed
-- [ ] New tests added for new functionality
-- [ ] All tests pass locally
-
-## 🧪 Testing
-
-Brief description of changes made.
-
-## 📋 Description
-
-```markdown
-
-Create `.github/pull_request_template.md`:
-
-## 🔄 Pull Request Template
+## 🛡️ Repository Protection Rules
 
 ```
 
-Add any other context or screenshots about the feature request here.
+OPENAI_API_KEY=... (for OpenAI GPT models)
+ANTHROPIC_API_KEY=... (for Claude API)
 
-## 📋 Additional Context
-
-Why is this feature needed? What problem does it solve?
-
-## 💡 Motivation
-
-A clear and concise description of what you want to happen.
-
-## 🚀 Feature Description
-
----
-
-## assignees: ''
-labels: enhancement
-title: '[FEATURE] '
-about: Suggest an idea for this project
-name: 🚀 Feature Request
-
-```markdown
-
-Create `.github/ISSUE_TEMPLATE/feature_request.md`:
+```text
 
 ```
 
-Add any other context about the problem here.
+AWS_REGION=us-west-2 (or your preferred Bedrock region)
+AWS_SECRET_ACCESS_KEY=... (your AWS secret key)
+AWS_ACCESS_KEY_ID=AKIA... (your AWS access key)
 
-## 📋 Additional Context
+```ini
 
-- OS: [e.g. iOS]
-- Version: [e.g. 22]
-- Browser: [e.g. Chrome, Firefox]
+Navigate to your repository → Settings → Secrets and variables → Actions, then add:
 
-## 🌍 Environment
+## 🔑 Required Repository Secrets
 
-If applicable, add screenshots to help explain your problem.
-
-## 📸 Screenshots
-
-A clear description of what you expected to happen.
-
-## ✅ Expected Behavior
-
-4. See error
-5. Scroll down to '....'
-6. Click on '....'
-7. Go to '...'
-
-## 🔄 Steps to Reproduce
-
-A clear and concise description of what the bug is.
-
-## 🐛 Bug Description
-
----
-
-## assignees: ''
-labels: bug
-title: '[BUG] '
-about: Create a report to help us improve
-name: 🐛 Bug Report
-
-```markdown
-
-Create `.github/ISSUE_TEMPLATE/bug_report.md`:
-
-## 📋 Issue Templates
-
-- ✅ Allow GitHub Actions to create and approve pull requests
-- ✅ Read and write permissions
-**Settings > Actions > General > Workflow permissions**:
-
-- ✅ Allow actions by Marketplace verified creators
-- ✅ Allow actions created by GitHub
-- ✅ Allow all actions and reusable workflows
-**Settings > Actions > General**:
-
-- ✅ Automatically delete head branches
-- ✅ Allow rebase merging
-- ✅ Allow squash merging
-- ✅ Allow merge commits
-
-## ⚙️ Repository Settings
-
-```
-
-PROD_API_URL=https://api.example.com
-STAGING_API_URL=https://api-staging.example.com
-DEV_API_URL=https://api-dev.example.com
-
-# API endpoints
-
-PROD_BASE_URL=https://example.com
-STAGING_BASE_URL=https://staging.example.com
-DEV_BASE_URL=https://dev.example.com
-
-# Base URLs for different environments
-
-```bash
-
-Add environment variables in **Settings > Secrets and variables > Actions > Variables**:
-
-```
-
-CTRF_API_KEY=your_ctrf_api_key_here
-
-# For external reporting (optional)
-
-DISCORD_WEBHOOK_URL=your_discord_webhook_here
-SLACK_WEBHOOK_URL=your_slack_webhook_here
-
-# For notifications (optional)
-
-ANTHROPIC_API_KEY=your_claude_key_here
-OPENAI_API_KEY=your_openai_key_here
-
-# If using external AI services (optional)
-
-```bash
-
-Add these secrets in **Settings > Secrets and variables > Actions**:
-
-## 🔐 Repository Secrets
-
-- ✅ Restrict pushes that create files larger than 100MB
-- ✅ Require review from code owners
-- ✅ Dismiss stale PR approvals when new commits are pushed
-- ✅ Require pull request reviews before merging
-
-     - `build`
-     - `test (webkit)`
-     - `test (firefox)` 
-     - `test (chromium)`
-   - ✅ Required status checks:
-   - ✅ Require branches to be up to date before merging
-   - ✅ Require status checks to pass before merging
-3. Enable:
-2. Add rule for `main` branch
-1. Go to **Settings > Branches**
-
-Set up branch protection for `main` branch:
-
-## 🛡️ Branch Protection Rules
-
-This guide helps you configure your GitHub repository to work optimally with the included workflows.
- 🔧 GitHub Repository Setup Guide
+This guide helps you configure GitHub Actions workflows and repository settings for the Playwright AI Testing framework.
+ 🚀 GitHub Actions & CI/CD Setup Guide
 ```
