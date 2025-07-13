@@ -416,68 +416,6 @@ generateHtmlReport(report, 'report.html', customConfig);
 ## 📝 **Conclusion**
 
 This comprehensive refactoring transforms the HTML report generator from a functional but basic implementation into an **enterprise-grade, secure, accessible, and highly maintainable** solution that exemplifies Senior SDET best practices.
-
-## 🚨 GitHub Actions & CI/CD Troubleshooting
-
-### ❌ Problem: CTRF Report Consolidation Failure
-
-**Issue:** The GitHub Actions workflow was failing during the CTRF report consolidation step with errors about missing files and incorrect paths.
-
-**Root Cause Analysis:**
-1. **Subshell Variable Scoping**: The `while read` loop was executing in a subshell, causing the `counter` variable to not persist properly
-2. **Path Issues**: Malformed file paths in the consolidation logic  
-3. **Missing Directory Creation**: The `consolidated-reports` directory wasn't always created before use
-4. **Inadequate Error Handling**: No proper fallback when CTRF reports were missing
-
-**Final Solution Applied:**
-```bash
-# Fixed CTRF consolidation logic with array-based processing
-CTRF_FILES=($(find downloaded-reports -name "ctrf-report.json" -type f))
-
-if [ ${#CTRF_FILES[@]} -eq 0 ]; then
-  echo "❌ No CTRF reports found, creating empty structure..."
-  echo '{"results":{"tool":{"name":"Playwright"},"summary":{"tests":0,"passed":0,"failed":0,"skipped":0,"pending":0,"other":0,"start":0,"stop":0},"tests":[]}}' > test-results/ctrf-report.json
-else
-  counter=1
-  for file in "${CTRF_FILES[@]}"; do
-    cp "$file" "consolidated-reports/ctrf-report-browser${counter}.json"
-    counter=$((counter + 1))
-  done
-  
-  # Use first report as primary
-  FIRST_REPORT=$(ls consolidated-reports/ctrf-report*.json | head -1)
-  cp "$FIRST_REPORT" test-results/ctrf-report.json
-fi
-```
-
-**Key Improvements:**
-- ✅ **Array Processing**: Used Bash arrays instead of pipe/while loops to avoid subshell issues
-- ✅ **Robust Error Handling**: Proper fallback creation when no reports are found
-- ✅ **Better Debug Output**: Enhanced logging for troubleshooting
-- ✅ **Directory Verification**: Ensured all required directories exist before use
-- ✅ **Variable Persistence**: Fixed counter variable scoping issues
-
-### ✅ Verification Steps
-
-1. **Commit and Push**: All fixes committed to feature branch
-2. **Monitor CI**: Watch GitHub Actions workflow execution
-3. **Check Artifacts**: Verify CTRF reports are properly consolidated
-4. **Review Logs**: Confirm debug output shows successful processing
-
-### 🔍 Monitoring Commands
-
-```bash
-# Check workflow status
-gh run list --limit 5
-
-# View workflow logs  
-gh run view --log
-
-# Check artifacts
-gh run view --web
-```
-
-**Status**: ✅ **RESOLVED** - Final fix applied with robust array-based processing and comprehensive error handling.
 ```
 
 ## 🔧 **GitHub Actions Troubleshooting**
