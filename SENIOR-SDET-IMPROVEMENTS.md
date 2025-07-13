@@ -14,6 +14,157 @@ This comprehensive refactoring transforms the HTML report generator from a funct
 
 ## 📝 **Conclusion**
 
+## 🔧 **GitHub Pull Request Configuration**
+
+To maintain code quality and enable team collaboration, here's how to configure GitHub for pull request reviews:
+
+### 🛡️ **Branch Protection Rules**
+
+1. **Navigate to Repository Settings**:
+   - Go to your GitHub repository
+   - Click **Settings** tab
+   - Select **Branches** from the left sidebar
+
+2. **Add Branch Protection Rule**:
+   ```
+   Branch name pattern: main
+   ```
+
+3. **Configure Protection Settings**:
+   - ✅ **Require a pull request before merging**
+   - ✅ **Require approvals**: Set to `1` or more reviewers
+   - ✅ **Dismiss stale PR approvals when new commits are pushed**
+   - ✅ **Require review from code owners** (if using CODEOWNERS)
+   - ✅ **Require status checks to pass before merging**
+   - ✅ **Require branches to be up to date before merging**
+   - ✅ **Require linear history** (optional, prevents merge commits)
+   - ✅ **Include administrators** (applies rules to repo admins too)
+
+### 📋 **Required Status Checks**
+
+Configure these checks to run automatically:
+- `build` - TypeScript compilation
+- `test` - Playwright test suite
+- `lint` - ESLint code quality checks
+- `type-check` - TypeScript type validation
+
+### 👥 **CODEOWNERS Configuration**
+
+Create `.github/CODEOWNERS` file:
+```
+# Global code owners
+* @your-team/senior-developers
+
+# HTML Report specific
+src/html-report.ts @your-username
+tests/*html* @your-team/qa-engineers
+docs/ @your-team/tech-writers
+
+# Critical configuration files
+package.json @your-team/senior-developers
+playwright.config.ts @your-team/qa-leads
+.github/ @your-team/devops
+```
+
+### 🚀 **GitHub Actions Workflow**
+
+Your existing `.github/workflows/playwright.yml` already includes:
+- ✅ Automated testing on PR creation
+- ✅ Multiple browser testing
+- ✅ Artifact uploads for failed tests
+- ✅ Status reporting back to GitHub
+
+### 📝 **Pull Request Template**
+
+Create `.github/pull_request_template.md`:
+```markdown
+## 🎯 **Pull Request Summary**
+
+### **Description**
+Brief description of changes made.
+
+### **Type of Change**
+- [ ] 🐛 Bug fix (non-breaking change which fixes an issue)
+- [ ] ✨ New feature (non-breaking change which adds functionality)
+- [ ] 💥 Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] 📚 Documentation update
+- [ ] 🧪 Test improvements
+- [ ] 🔧 Configuration changes
+
+### **Testing**
+- [ ] Unit tests pass
+- [ ] Integration tests pass
+- [ ] Manual testing completed
+- [ ] Cross-browser testing (if applicable)
+
+### **Security Checklist**
+- [ ] No sensitive data exposed
+- [ ] Input validation implemented
+- [ ] XSS protection verified
+- [ ] Dependencies are secure
+
+### **Screenshots** (if applicable)
+Add screenshots for UI changes.
+
+### **Related Issues**
+Closes #(issue number)
+```
+
+### 🔄 **Recommended Workflow**
+
+1. **Create Feature Branch**:
+   ```bash
+   git checkout -b feature/your-feature-name
+   # Make your changes
+   git add .
+   git commit -m "feat: your descriptive commit message"
+   git push origin feature/your-feature-name
+   ```
+
+2. **Create Pull Request**:
+   - Use the GitHub UI or CLI
+   - Fill out the PR template
+   - Request specific reviewers
+   - Link to related issues
+
+3. **Review Process**:
+   - ✅ Automated checks must pass
+   - ✅ Required reviewers must approve
+   - ✅ All conversations resolved
+   - ✅ Branch is up to date with main
+
+4. **Merge Strategy**:
+   - **Squash and merge** (recommended for feature branches)
+   - **Create merge commit** (for release branches)
+   - **Rebase and merge** (for maintaining linear history)
+
+### 🎯 **Best Practices for Reviews**
+
+**For Pull Request Authors**:
+- Keep PRs small and focused (< 400 lines changed)
+- Write clear commit messages following conventional commits
+- Include tests for new functionality
+- Update documentation when needed
+- Self-review your code before requesting reviews
+
+**For Reviewers**:
+- Review for logic, security, performance, and maintainability
+- Test the changes locally if needed
+- Provide constructive feedback
+- Approve only when confident in the changes
+- Use GitHub's suggestion feature for minor fixes
+
+### 🚨 **Emergency Hotfix Process**
+
+For critical production issues:
+1. Create hotfix branch from `main`
+2. Make minimal necessary changes
+3. Fast-track review with senior team member
+4. Deploy immediately after merge
+5. Create follow-up PR for comprehensive fix
+
+This configuration ensures code quality, security, and team collaboration while maintaining rapid development velocity.
+
 ```md
 generateHtmlReport(report, 'report.html', customConfig);
 // New enhanced features available
