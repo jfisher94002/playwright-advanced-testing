@@ -1,0 +1,62 @@
+{
+  "results": {
+    "tool": {
+      "name": "playwright"
+    },
+    "summary": {
+      "tests": 2,
+      "passed": 2,
+      "failed": 0,
+      "pending": 0,
+      "skipped": 0,
+      "other": 0,
+      "start": 1754894195282,
+      "stop": 1754894202111,
+      "suites": 0
+    },
+    "tests": [
+      {
+        "name": "has title",
+        "status": "passed",
+        "duration": 3439,
+        "start": 1754894196,
+        "stop": 1754894199,
+        "rawStatus": "passed",
+        "tags": [],
+        "type": "e2e",
+        "filePath": "/Users/jonathan/sandbox/udemy-playwright-javascript-062125/tests/example.spec.ts",
+        "retries": 0,
+        "flaky": false,
+        "steps": [],
+        "suite": "chromium > example.spec.ts",
+        "attachments": [],
+        "stdout": [],
+        "stderr": [],
+        "extra": {
+          "annotations": []
+        }
+      },
+      {
+        "name": "get started link",
+        "status": "passed",
+        "duration": 4039,
+        "start": 1754894196,
+        "stop": 1754894200,
+        "rawStatus": "passed",
+        "tags": [],
+        "type": "e2e",
+        "filePath": "/Users/jonathan/sandbox/udemy-playwright-javascript-062125/tests/example.spec.ts",
+        "retries": 0,
+        "flaky": false,
+        "steps": [],
+        "suite": "chromium > example.spec.ts",
+        "attachments": [],
+        "stdout": [],
+        "stderr": [],
+        "extra": {
+          "annotations": []
+        }
+      }
+    ]
+  }
+}
