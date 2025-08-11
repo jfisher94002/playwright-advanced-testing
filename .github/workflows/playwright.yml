@@ -315,7 +315,10 @@ jobs:
           
           # Find all CTRF reports
           echo "Looking for CTRF reports..."
-          CTRF_FILES=($(find downloaded-reports -name "ctrf-report.json" -type f))
+          CTRF_FILES=()
+          while IFS= read -r -d '' file; do
+            CTRF_FILES+=("$file")
+          done < <(find downloaded-reports -name "ctrf-report.json" -type f -print0)
           
           if [ ${#CTRF_FILES[@]} -eq 0 ]; then
             echo "❌ No CTRF reports found in downloaded artifacts"
