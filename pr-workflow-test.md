@@ -3,7 +3,7 @@
 ## Test Objectives
 
 ```sh
-**Created**: July 12, 2025
+**Created**: YYYY-MM-DD
 **Author**:   jonathan
 **Purpose**: Verify GitHub repository rules and PR workflow configuration
 🧪 Pull Request Workflow Test
