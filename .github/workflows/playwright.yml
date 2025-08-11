@@ -315,22 +315,24 @@ jobs:
           
           # Find all CTRF reports
           echo "Looking for CTRF reports..."
-          CTRF_FILES=($(find downloaded-reports -name "ctrf-report.json" -type f))
+          CTRF_FILES=()
+          while IFS= read -r -d '' file; do
+            CTRF_FILES+=("$file")
+          done < <(find downloaded-reports -name "ctrf-report.json" -type f -print0)
           
-          if [ ${#CTRF_FILES[@]} -eq 0 ]; then
+          if [ "${#CTRF_FILES[@]}" -eq 0 ]; then
             echo "❌ No CTRF reports found in downloaded artifacts"
             echo "Creating empty report structure..."
             echo '{"results":{"tool":{"name":"Playwright"},"summary":{"tests":0,"passed":0,"failed":0,"skipped":0,"pending":0,"other":0,"start":0,"stop":0},"tests":[]}}' > test-results/ctrf-report.json
           else
             echo "✅ Found ${#CTRF_FILES[@]} CTRF reports:"
             
-            # Copy each report with counter-based naming
-            counter=1
-            for file in "${CTRF_FILES[@]}"; do
+            # Copy each report with index-based naming
+            for index in "${!CTRF_FILES[@]}"; do
+              file="${CTRF_FILES[$index]}"
               echo "  Processing: $file"
-              cp "$file" "consolidated-reports/ctrf-report-browser${counter}.json"
-              echo "  → Copied to: consolidated-reports/ctrf-report-browser${counter}.json"
-              counter=$((counter + 1))
+              cp "$file" "consolidated-reports/ctrf-report-browser$((index + 1)).json"
+              echo "  → Copied to: consolidated-reports/ctrf-report-browser$((index + 1)).json"
             done
             
             echo ""

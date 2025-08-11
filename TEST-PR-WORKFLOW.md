@@ -5,7 +5,8 @@
 This file is created to test our GitHub Pull Request workflow configuration.
 🧪 Test PR Workflow Verification
 
-**Purpose**: Workflow validation
+# **Purpose**: Workflow validation
+<<<<<<< HEAD
 **Author**: Jonathan  
 **Created**: July 12, 2025
 
