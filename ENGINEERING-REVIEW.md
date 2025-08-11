@@ -1,6 +1,6 @@
 # 
 
-This review provides a roadmap for transforming this project into a production-ready, maintainable test automation framework following SDET best practices.
+This review provides a roadmap for transforming this project into a production-ready, maintainable test automation framework following Engineer best practices.
 
 5. **Allure**: Enhanced reporting
 6. **Lighthouse CI**: Performance testing
@@ -180,5 +180,5 @@ await page.getByTestId('login-button').click();
 - ❌ **README.md corrupted**: Formatting issues, inverted content structure
 
 ## 🚨 Critical Issues Found
- 🔍 SDET-Level Review: Critical Issues & Recommendations
+ 🔍 Engineer-Level Review: Critical Issues & Recommendations
 ```

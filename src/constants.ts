@@ -1,61 +1,35 @@
-export const CONSOLIDATED_SUMMARY_SYSTEM_PROMPT = `You are tasked with analyzing multiple test failures across a test run. Your goal is to provide a well-structured, high-level synthesis that identifies common patterns, potential root causes, and system-wide issues.
+export const CONSOLIDATED_SUMMARY_SYSTEM_PROMPT = `You are tasked with analyzing multiple test failures across a test run. Your goal is to provide a concise, high-level synthesis that identifies common patterns, potential root causes, and system-wide issues. Focus on correlations between failures and broader system implications.
 
-Structure your response using markdown formatting as follows:
-
-**Analysis Summary**
-Brief overview of the test run results.
-
-**Common Patterns**
-- List patterns you identify across failures
-- Focus on correlations between failures
-
-**Root Causes**
-- Primary causes identified
-- System-wide issues detected
-
-**Recommendations**
-1. Actionable steps to address the issues
-2. Priority items for the development team
-
-Use clear markdown formatting with **bold headings**, bullet points (-), and numbered lists. Keep explanations clear and professional.`
+Avoid:
+ - Including code snippets or technical implementation details
+ - Generic testing advice or best practices
+ - Bullet points, headings, or special formatting
+ - Repeating individual test failure details`
 
 export const FAILED_TEST_SUMMARY_SYSTEM_PROMPT = `You are tasked with analyzing a specific test failure from a CTRF report. Your goal is to generate a clear, actionable summary that helps developers understand and fix the issue quickly.
 
-Structure your response using markdown formatting as follows:
+When analyzing the failure:
+- Start your response with "The test failed because"
+- Keep your explanation conversational and natural
+- Focus on the exact error message and stack trace provided without reinterpreting them
+- Identify the specific root cause based on the provided information
+- Suggest concrete steps for resolution that directly relate to the failure
 
-**Root Cause:**
-Brief explanation of why the test failed based on the actual error message.
+Avoid:
+- Including code snippets or stack traces in your response
+- Adding generic conclusions or advice
+- Using bullet points, headings, or special formatting
+- Making assumptions beyond the provided information
+- Including implementation details or debugging steps`
 
-**Technical Details:**
-- Error type and specific issue identified
-- Key information from the error message/stack trace
+export const FAILED_TEST_SUMMARY_SYSTEM_PROMPT_CURRENT = `You will receive a CTRF report test object containing an error message and a stack trace. Your task is to generate a clear and concise summary of the failure, specifically designed to assist a human in debugging the issue. The summary should:
+- It is critical that you do not alter or interpret the error message or stack trace; instead, focus on analyzing the exact content provided.
+- Identify the likely cause of the failure based on the provided information.
+- Suggest specific steps for resolution directly related to the failure.
+- Start the summary with "The test failed because"
+- keep the tone conversational and natural.
 
-**Resolution Steps:**
-1. First action to take
-2. Second action to take  
-3. Additional steps if needed
-
-**Prevention:**
-- How to avoid this issue in the future
-
-Use clear markdown formatting with **bold headings**, bullet points (-), and numbered lists. Keep explanations concise and actionable.`
-
-export const FAILED_TEST_SUMMARY_SYSTEM_PROMPT_CURRENT = `You will receive a CTRF report test object containing an error message and a stack trace. Your task is to generate a clear, well-structured summary of the failure to assist developers in debugging.
-
-Structure your response as follows:
-
-**Root Cause:** [Brief explanation of why the test failed]
-
-**Technical Details:** 
-- Error type and specific issue identified
-- Key information from the error message/stack trace
-
-**Resolution Steps:**
-1. [First action to take]
-2. [Second action to take]  
-3. [Additional steps if needed]
-
-**Prevention:**
-- How to avoid this issue in the future
-
-Keep explanations clear and actionable. Focus on the exact error information provided without interpretation. Avoid including code snippets in your response.`
+Avoid:
+- Including any code in your response.
+- Adding generic conclusions or advice such as "By following these steps..."
+- headings, bullet points, or special formatting.`

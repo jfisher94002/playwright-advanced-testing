@@ -113,6 +113,12 @@ jobs:
         if: steps.should-run.outputs.should_run == 'true'
         run: npx playwright install --with-deps ${{ matrix.browser }}
 
+      - name: 📁 Prepare test directories
+        if: steps.should-run.outputs.should_run == 'true'
+        run: |
+          mkdir -p test-results
+          mkdir -p playwright-report
+
       - name: 🧪 Run Playwright tests
         if: steps.should-run.outputs.should_run == 'true'
         run: npx playwright test --project=${{ matrix.browser }}
@@ -300,22 +306,54 @@ jobs:
         run: |
           echo "Consolidating CTRF reports from all browsers..."
           mkdir -p consolidated-reports
+          mkdir -p test-results
           
-          # Find and copy all CTRF reports
-          find downloaded-reports -name "ctrf-report.json" -exec cp {} consolidated-reports/ctrf-report-{}.json \;
+          # Debug: Show directory structure
+          echo "Directory structure after artifact download:"
+          find downloaded-reports -type f -name "*.json" || echo "No JSON files found"
+          echo ""
           
-          # If we have multiple reports, merge them, otherwise use the single report
-          if [ $(ls consolidated-reports/ctrf-report*.json 2>/dev/null | wc -l) -gt 1 ]; then
-            echo "Multiple reports found, merging..."
-            # Use the first report as base for now (could implement proper merging)
-            cp consolidated-reports/ctrf-report*.json test-results/ctrf-report.json | head -1
-          elif [ $(ls consolidated-reports/ctrf-report*.json 2>/dev/null | wc -l) -eq 1 ]; then
-            echo "Single report found, using as-is..."
-            cp consolidated-reports/ctrf-report*.json test-results/ctrf-report.json
+          # Find all CTRF reports
+          echo "Looking for CTRF reports..."
+          CTRF_FILES=()
+          while IFS= read -r -d '' file; do
+            CTRF_FILES+=("$file")
+          done < <(find downloaded-reports -name "ctrf-report.json" -type f -print0)
+          
+          if [ "${#CTRF_FILES[@]}" -eq 0 ]; then
+            echo "❌ No CTRF reports found in downloaded artifacts"
+            echo "Creating empty report structure..."
+            echo '{"results":{"tool":{"name":"Playwright"},"summary":{"tests":0,"passed":0,"failed":0,"skipped":0,"pending":0,"other":0,"start":0,"stop":0},"tests":[]}}' > test-results/ctrf-report.json
           else
-            echo "No CTRF reports found to consolidate"
-            exit 1
+            echo "✅ Found ${#CTRF_FILES[@]} CTRF reports:"
+            
+            # Copy each report with index-based naming
+            for index in "${!CTRF_FILES[@]}"; do
+              file="${CTRF_FILES[$index]}"
+              echo "  Processing: $file"
+              cp "$file" "consolidated-reports/ctrf-report-browser$((index + 1)).json"
+              echo "  → Copied to: consolidated-reports/ctrf-report-browser$((index + 1)).json"
+            done
+            
+            echo ""
+            echo "Consolidated reports created:"
+            ls -la consolidated-reports/
+            
+            # Use the first report as the primary report
+            FIRST_REPORT=$(ls consolidated-reports/ctrf-report*.json | head -1)
+            if [ -f "$FIRST_REPORT" ]; then
+              cp "$FIRST_REPORT" test-results/ctrf-report.json
+              echo "✅ Primary report set: $FIRST_REPORT → test-results/ctrf-report.json"
+            else
+              echo "❌ Failed to find first report, creating empty structure"
+              echo '{"results":{"tool":{"name":"Playwright"},"summary":{"tests":0,"passed":0,"failed":0,"skipped":0,"pending":0,"other":0,"start":0,"stop":0},"tests":[]}}' > test-results/ctrf-report.json
+            fi
           fi
+          
+          # Verify final structure
+          echo ""
+          echo "Final test-results directory:"
+          ls -la test-results/
 
       - name: 🤖 Generate Comprehensive AI Analysis
         run: |

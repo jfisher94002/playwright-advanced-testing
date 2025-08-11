@@ -1,102 +1,11 @@
 /* eslint-disable */
 import type { CtrfReport } from '../types/ctrf'
 import fs from 'fs'
-import { marked } from 'marked'
-
-// Configure marked for cleaner HTML output
-marked.setOptions({
-  breaks: true,
-  gfm: true
-})
-
-/**
- * Escapes HTML characters to prevent XSS attacks
- * @param text - The text to escape
- * @returns Escaped HTML-safe text
- */
-function escapeHtml(text: string): string {
-  if (!text) {
-    return text
-  }
-  
-  // Manual escaping for better performance and security
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    .replace(/\//g, '&#x2F;')
-}
-
-function formatAiAnalysis(text: string): string {
-  // Convert markdown to HTML while preserving structure
-  return marked(text) as string
-}
-
-function cleanErrorMessage(text: string): string {
-  if (!text) {
-    return text
-  }
-  
-  // Remove ANSI color codes and escape sequences
-  return text
-    .replace(/\[(\d+)m/g, '') // Remove ANSI color codes like [31m, [39m
-    .replace(/\[(\d+);(\d+)m/g, '') // Remove complex ANSI codes
-    .replace(/\[\d+m/g, '') // Remove any remaining ANSI codes
-    .replace(/\[2m/g, '') // Remove dim text codes
-    .replace(/\[22m/g, '') // Remove normal intensity codes
-    .replace(/\[7m/g, '') // Remove reverse video codes
-    .replace(/\[27m/g, '') // Remove normal video codes
-    .trim()
-}
-
-function formatErrorForDisplay(message: string, trace?: string): { message: string; trace?: string } {
-  const cleanMessage = cleanErrorMessage(message)
-  const cleanTrace = trace ? cleanErrorMessage(trace) : undefined
-  
-  // Extract key information for better display
-  let formattedMessage = cleanMessage
-  
-  // Format timeout errors more clearly
-  if (cleanMessage.includes('Timed out') && cleanMessage.includes('waiting for')) {
-    const timeoutMatch = cleanMessage.match(/Timed out (\d+)ms waiting for/)
-    const expectedMatch = cleanMessage.match(/Expected string: "([^"]*)"/)
-    const receivedMatch = cleanMessage.match(/Received string: "([^"]*)"/)
-    
-    if (timeoutMatch) {
-      formattedMessage = `⏱️ Timeout Error (${timeoutMatch[1]}ms)\n`
-      
-      if (expectedMatch && receivedMatch) {
-        formattedMessage += `\n📝 Title Mismatch:\n`
-        formattedMessage += `Expected: "${expectedMatch[1]}"\n`
-        formattedMessage += `Received: "${receivedMatch[1]}"\n`
-        
-        // Highlight the difference
-        const expected = expectedMatch[1]
-        const received = receivedMatch[1]
-        if (expected !== received) {
-          formattedMessage += `\n🔍 The main difference appears to be in the spelling: "${expected}" vs "${received}"`
-        }
-      }
-    }
-  }
-  
-  return {
-    message: escapeHtml(formattedMessage),
-    trace: cleanTrace ? escapeHtml(cleanTrace) : undefined
-  }
-}
 
 export function generateHtmlReport(
   report: CtrfReport,
   htmlFilename?: string
 ): string {
-  // Input validation
-  if (!report || !report.results || !report.results.tests) {
-    throw new Error('Failed to generate HTML report: Invalid report structure')
-  }
-  
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
   const defaultFilename = `ai-test-report-${timestamp}.html`
   const filename = htmlFilename ?? defaultFilename
@@ -132,28 +41,8 @@ export function generateHtmlReport(
         .ai-summary { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; }
         .ai-summary h4 { margin: 0 0 1rem 0; }
         .error-details { background: #fff; border: 1px solid #dee2e6; border-radius: 4px; padding: 1rem; margin-top: 1rem; font-family: monospace; font-size: 0.875rem; }
-        .error-message { color: #dc3545; font-weight: 600; margin-bottom: 0.5rem; line-height: 1.4; }
-        .error-trace { color: #6c757d; margin-top: 0.5rem; line-height: 1.3; }
+        .error-message { color: #dc3545; font-weight: 600; margin-bottom: 0.5rem; }
         .overall-summary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 8px; margin-top: 2rem; }
-        
-        /* Responsive design for mobile and tablet devices */
-        @media (max-width: 768px) {
-            body { padding: 10px; }
-            .header { padding: 1.5rem; }
-            .header h1 { font-size: 2rem; }
-            .summary { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
-            .summary-card { padding: 1rem; }
-            .section-content { padding: 1rem; }
-            .test-item { padding: 1rem; }
-            .test-details { grid-template-columns: 1fr; gap: 0.5rem; }
-            .overall-summary { padding: 1.5rem; }
-        }
-        
-        @media (max-width: 480px) {
-            .summary { grid-template-columns: 1fr; }
-            .header h1 { font-size: 1.5rem; }
-            .test-name { font-size: 1rem; }
-        }
     </style>
 </head>
 <body>
@@ -203,31 +92,26 @@ export function generateHtmlReport(
             <div class="section-content">
                 ${failedTests.map((test) => `
                 <div class="test-item failed">
-                    <div class="test-name">${escapeHtml(test.name)}</div>
+                    <div class="test-name">${test.name}</div>
                     
                     <div class="test-details">
                         <div><strong>Duration:</strong> ${test.duration}ms</div>
-                        ${test.suite != null ? `<div><strong>Suite:</strong> ${escapeHtml(test.suite)}</div>` : ''}
+                        ${test.suite != null ? `<div><strong>Suite:</strong> ${test.suite}</div>` : ''}
                         ${test.retries != null && test.retries > 0 ? `<div><strong>Retries:</strong> ${test.retries}</div>` : ''}
                         ${test.flaky === true ? `<div><strong>Flaky:</strong> Yes</div>` : ''}
                     </div>
                     
                     ${test.message != null || test.trace != null ? `
                     <div class="error-details">
-                        ${(() => {
-                          const formatted = formatErrorForDisplay(test.message || '', test.trace || '')
-                          return `
-                            ${formatted.message ? `<div class="error-message">${formatted.message.replace(/\n/g, '<br>')}</div>` : ''}
-                            ${formatted.trace && formatted.trace !== formatted.message ? `<div class="error-trace"><strong>Stack Trace:</strong><br>${formatted.trace.replace(/\n/g, '<br>')}</div>` : ''}
-                          `
-                        })()}
+                        ${test.message != null ? `<div class="error-message">${test.message}</div>` : ''}
+                        ${test.trace != null ? `<div class="error-trace">${test.trace}</div>` : ''}
                     </div>
                     ` : ''}
                     
                     ${test.ai != null ? `
                     <div class="ai-summary">
                         <h4>🤖 AI Analysis</h4>
-                        <div>${formatAiAnalysis(test.ai)}</div>
+                        <p>${test.ai}</p>
                     </div>
                     ` : ''}
                 </div>
@@ -244,10 +128,10 @@ export function generateHtmlReport(
             <div class="section-content">
                 ${passedTests.slice(0, 5).map((test) => `
                 <div class="test-item passed">
-                    <div class="test-name">${escapeHtml(test.name)}</div>
+                    <div class="test-name">${test.name}</div>
                     <div class="test-details">
                         <div><strong>Duration:</strong> ${test.duration}ms</div>
-                        ${test.suite != null ? `<div><strong>Suite:</strong> ${escapeHtml(test.suite)}</div>` : ''}
+                        ${test.suite != null ? `<div><strong>Suite:</strong> ${test.suite}</div>` : ''}
                     </div>
                 </div>
                 `).join('')}
@@ -263,7 +147,7 @@ export function generateHtmlReport(
         ${report.results.extra?.ai != null ? `
         <div class="overall-summary">
             <h3>📋 Overall AI Summary</h3>
-            <div>${formatAiAnalysis(report.results.extra.ai)}</div>
+            <p>${report.results.extra.ai}</p>
         </div>
         ` : ''}
         
