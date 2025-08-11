@@ -327,13 +327,12 @@ jobs:
           else
             echo "✅ Found ${#CTRF_FILES[@]} CTRF reports:"
             
-            # Copy each report with counter-based naming
-            counter=1
-            for file in "${CTRF_FILES[@]}"; do
+            # Copy each report with index-based naming
+            for index in "${!CTRF_FILES[@]}"; do
+              file="${CTRF_FILES[$index]}"
               echo "  Processing: $file"
-              cp "$file" "consolidated-reports/ctrf-report-browser${counter}.json"
-              echo "  → Copied to: consolidated-reports/ctrf-report-browser${counter}.json"
-              counter=$((counter + 1))
+              cp "$file" "consolidated-reports/ctrf-report-browser$((index + 1)).json"
+              echo "  → Copied to: consolidated-reports/ctrf-report-browser$((index + 1)).json"
             done
             
             echo ""
