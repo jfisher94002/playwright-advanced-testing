@@ -4,23 +4,126 @@
       "name": "playwright"
     },
     "summary": {
-      "tests": 1,
-      "passed": 1,
-      "failed": 0,
+      "tests": 5,
+      "passed": 4,
+      "failed": 1,
       "pending": 0,
       "skipped": 0,
       "other": 0,
-      "start": 1754973565481,
-      "stop": 1754973575327,
+      "start": 1754973700141,
+      "stop": 1754973717802,
       "suites": 0
     },
     "tests": [
       {
+        "name": "Intentional Failure for AI Demo",
+        "status": "failed",
+        "duration": 12089,
+        "start": 1754973701,
+        "stop": 1754973713,
+        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mpage\u001b[39m\u001b[2m).\u001b[22mtoHaveTitle\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected string: \u001b[32m\"This title does not exist\"\u001b[39m\nReceived string: \u001b[31m\"Let's Shop\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveTitle\" with timeout 5000ms\u001b[22m\n\u001b[2m    9 × unexpected value \"Let's Shop\"\u001b[22m\n",
+        "trace": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mpage\u001b[39m\u001b[2m).\u001b[22mtoHaveTitle\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected string: \u001b[32m\"This title does not exist\"\u001b[39m\nReceived string: \u001b[31m\"Let's Shop\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveTitle\" with timeout 5000ms\u001b[22m\n\u001b[2m    9 × unexpected value \"Let's Shop\"\u001b[22m\n\n    at /Users/jonathan/sandbox/udemy-playwright-javascript-062125/tests/ai-demo.spec.js:7:24",
+        "snippet": "\u001b[0m \u001b[90m  5 |\u001b[39m     \n \u001b[90m  6 |\u001b[39m     \u001b[90m// This will fail intentionally to test AI reporting\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m  7 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page)\u001b[33m.\u001b[39mtoHaveTitle(\u001b[32m'This title does not exist'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m  8 |\u001b[39m     \n \u001b[90m  9 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mfill(\u001b[32m'#userEmail'\u001b[39m\u001b[33m,\u001b[39m \u001b[32m'wrong@email.com'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 10 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mfill(\u001b[32m'#userPassword'\u001b[39m\u001b[33m,\u001b[39m \u001b[32m'wrongpassword'\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m",
+        "rawStatus": "failed",
+        "tags": [],
+        "type": "e2e",
+        "filePath": "/Users/jonathan/sandbox/udemy-playwright-javascript-062125/tests/ai-demo.spec.js",
+        "retries": 0,
+        "flaky": false,
+        "steps": [],
+        "suite": "chromium > ai-demo.spec.js",
+        "attachments": [
+          {
+            "name": "screenshot",
+            "contentType": "image/png",
+            "path": "/Users/jonathan/sandbox/udemy-playwright-javascript-062125/test-results/ai-demo-Intentional-Failure-for-AI-Demo-chromium/test-failed-1.png"
+          },
+          {
+            "name": "video",
+            "contentType": "video/webm",
+            "path": "/Users/jonathan/sandbox/udemy-playwright-javascript-062125/test-results/ai-demo-Intentional-Failure-for-AI-Demo-chromium/video.webm"
+          },
+          {
+            "name": "error-context",
+            "contentType": "text/markdown",
+            "path": "/Users/jonathan/sandbox/udemy-playwright-javascript-062125/test-results/ai-demo-Intentional-Failure-for-AI-Demo-chromium/error-context.md"
+          }
+        ],
+        "stdout": [],
+        "stderr": [],
+        "extra": {
+          "annotations": []
+        }
+      },
+      {
+        "name": "has title",
+        "status": "passed",
+        "duration": 2041,
+        "start": 1754973701,
+        "stop": 1754973703,
+        "rawStatus": "passed",
+        "tags": [],
+        "type": "e2e",
+        "filePath": "/Users/jonathan/sandbox/udemy-playwright-javascript-062125/tests/example.spec.ts",
+        "retries": 0,
+        "flaky": false,
+        "steps": [],
+        "suite": "chromium > example.spec.ts",
+        "attachments": [],
+        "stdout": [],
+        "stderr": [],
+        "extra": {
+          "annotations": []
+        }
+      },
+      {
+        "name": "get started link",
+        "status": "passed",
+        "duration": 2818,
+        "start": 1754973701,
+        "stop": 1754973704,
+        "rawStatus": "passed",
+        "tags": [],
+        "type": "e2e",
+        "filePath": "/Users/jonathan/sandbox/udemy-playwright-javascript-062125/tests/example.spec.ts",
+        "retries": 0,
+        "flaky": false,
+        "steps": [],
+        "suite": "chromium > example.spec.ts",
+        "attachments": [],
+        "stdout": [],
+        "stderr": [],
+        "extra": {
+          "annotations": []
+        }
+      },
+      {
+        "name": "Browser Context Playwright Tests",
+        "status": "passed",
+        "duration": 6398,
+        "start": 1754973701,
+        "stop": 1754973707,
+        "rawStatus": "passed",
+        "tags": [],
+        "type": "e2e",
+        "filePath": "/Users/jonathan/sandbox/udemy-playwright-javascript-062125/tests/UIBasicTest.spec.js",
+        "retries": 0,
+        "flaky": false,
+        "steps": [],
+        "suite": "chromium > UIBasicTest.spec.js",
+        "attachments": [],
+        "stdout": [],
+        "stderr": [],
+        "extra": {
+          "annotations": []
+        }
+      },
+      {
         "name": "Page Playwright Tests",
         "status": "passed",
-        "duration": 8441,
-        "start": 1754973566,
-        "stop": 1754973574,
+        "duration": 10792,
+        "start": 1754973706,
+        "stop": 1754973717,
         "rawStatus": "passed",
         "tags": [],
         "type": "e2e",
@@ -35,7 +138,7 @@
           "Tag Name: DIV\n",
           "Class Name: toast-bottom-right toast-container\n",
           "ID: toast-container\n",
-          "Full HTML: <div id=\"toast-container\" class=\"toast-bottom-right toast-container\"><div class=\"ng-tns-c4-0 ng-star-inserted ng-trigger ng-trigger-flyInOut ngx-toastr toast-success\" toast-component=\"\" style=\"opacity: 1;\"><!----><div class=\"ng-tns-c4-0 toast-title ng-star-inserted\" aria-label=\"Login Successfully\" style=\"\"> Login Successfully <!----></div><!----><!----><!----><!----></div></div>\n",
+          "Full HTML: <div id=\"toast-container\" class=\"toast-bottom-right toast-container\"><div class=\"ng-tns-c4-0 ng-star-inserted ng-trigger ng-trigger-flyInOut ngx-toastr toast-success ng-animating\" toast-component=\"\" style=\"\"><!----><div class=\"ng-tns-c4-0 toast-title ng-star-inserted\" aria-label=\"Login Successfully\" style=\"\"> Login Successfully <!----></div><!----><!----><!----><!----></div></div>\n",
           "Current URL after login: https://rahulshettyacademy.com/client/#/dashboard/dash\n",
           "Login successful!\n",
           "Number of products displayed: 3\n",
