@@ -30,6 +30,13 @@ on:
           - webkit
           - all
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  actions: read
+  checks: write
+
 env:
   NODE_VERSION: '20'
 

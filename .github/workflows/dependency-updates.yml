@@ -6,6 +6,12 @@ on:
     - cron: '0 9 * * 1'
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: read
+
 env:
   NODE_VERSION: '20'
 

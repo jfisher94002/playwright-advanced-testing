@@ -56,6 +56,13 @@ on:
         default: false
         type: boolean
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  actions: read
+  checks: write
+
 env:
   NODE_VERSION: '20'
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
