@@ -13,19 +13,24 @@ export default defineConfig(
         name: 'chromium',
         use: { 
           ...require('@playwright/test').devices['Desktop Chrome'],
-          // Add any Chrome-specific settings
+          // Chromium browser engine
         },
       },
-      // Commented out other browsers for faster local testing
-      // Uncomment for full cross-browser testing
-      // {
-      //   name: 'firefox',
-      //   use: { ...devices['Desktop Firefox'] },
-      // },
-      // {
-      //   name: 'webkit',
-      //   use: { ...devices['Desktop Safari'] },
-      // },
+      {
+        name: 'chrome',
+        use: { 
+          ...require('@playwright/test').devices['Desktop Chrome'],
+          channel: 'chrome',
+          // Google Chrome browser
+        },
+      },
+      {
+        name: 'firefox',
+        use: { 
+          ...require('@playwright/test').devices['Desktop Firefox'],
+          // Firefox browser
+        },
+      },
     ],
   })
 );
