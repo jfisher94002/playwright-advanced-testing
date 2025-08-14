@@ -118,8 +118,27 @@ jobs:
           echo "Date: $(date)" >> reports/environment-report.md
           echo "" >> reports/environment-report.md
           
-          if [ -f "ctrf/ctrf-report.json" ]; then
+          if [ -f "test-results/ctrf-report.json" ]; then
+            echo "📊 CTRF Report found - Adding summary"
             npm run ctrf:summary >> reports/environment-report.md
+            
+            # Display summary in console
+            echo "=================================================================================="
+            echo "🌍 ENVIRONMENT TEST SUMMARY"
+            echo "=================================================================================="
+            
+            PASSED=$(cat test-results/ctrf-report.json | jq -r '.results.summary.passed // 0')
+            FAILED=$(cat test-results/ctrf-report.json | jq -r '.results.summary.failed // 0')
+            TOTAL=$(cat test-results/ctrf-report.json | jq -r '.results.summary.tests // 0')
+            
+            echo "🎯 Environment: ${{ github.event.inputs.environment }}"
+            echo "🌐 Browser: ${{ matrix.browser }}"
+            echo "🧪 Test Type: ${{ github.event.inputs.test_type }}"
+            echo "📊 Results: $PASSED passed, $FAILED failed, $TOTAL total"
+            echo "=================================================================================="
+          else
+            echo "⚠️  No CTRF report found at test-results/ctrf-report.json"
+            echo "⚠️  No CTRF report found" >> reports/environment-report.md
           fi
 
       - name: 🤖 Generate AI analysis for failures
@@ -135,14 +154,23 @@ jobs:
           # Screenshots are already captured by Playwright on failures
           # This step ensures we have a proper directory structure
 
-      - name: 📋 Upload environment test results
+      - name: � Upload CTRF Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctrf-env-${{ github.event.inputs.environment }}-${{ matrix.browser }}-${{ github.event.inputs.test_type }}
+          path: |
+            test-results/ctrf-report.json
+            ctrf/
+          retention-days: 30
+
+      - name: �📋 Upload environment test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: env-test-${{ github.event.inputs.environment }}-${{ matrix.browser }}-${{ github.event.inputs.test_type }}
           path: |
             playwright-report/
-            ctrf/
             ai-reports/
             reports/
             test-results/

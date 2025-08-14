@@ -55,11 +55,62 @@ jobs:
           TEST_ENV: ${{ matrix.environment }}
           FULL_SUITE: ${{ github.event.inputs.full_suite || 'true' }}
 
-      - name: 📊 Generate Comprehensive Reports
+      - name: 📊 Generate CTRF Summary
         if: always()
         run: |
-          npm run ctrf:summary
-          npm run ai:report
+          if [ -f "test-results/ctrf-report.json" ]; then
+            echo "🔍 CTRF Report Found - Generating Summary"
+            npm run ctrf:summary
+            
+            # Display test summary in console
+            echo "=================================================================================="
+            echo "📊 NIGHTLY TEST SUMMARY - ${{ matrix.browser }} on ${{ matrix.environment }}"
+            echo "=================================================================================="
+            
+            PASSED=$(cat test-results/ctrf-report.json | jq -r '.results.summary.passed // 0')
+            FAILED=$(cat test-results/ctrf-report.json | jq -r '.results.summary.failed // 0')
+            SKIPPED=$(cat test-results/ctrf-report.json | jq -r '.results.summary.skipped // 0')
+            TOTAL=$(cat test-results/ctrf-report.json | jq -r '.results.summary.tests // 0')
+            START_TIME=$(cat test-results/ctrf-report.json | jq -r '.results.summary.start')
+            STOP_TIME=$(cat test-results/ctrf-report.json | jq -r '.results.summary.stop')
+            
+            echo "🎯 Environment: ${{ matrix.environment }}"
+            echo "🌐 Browser: ${{ matrix.browser }}"
+            echo "📅 Test Run: $(date)"
+            echo "⏱️  Start Time: $START_TIME"
+            echo "⏱️  Stop Time: $STOP_TIME"
+            echo ""
+            echo "📊 Results Summary:"
+            echo "   ✅ Passed: $PASSED"
+            echo "   ❌ Failed: $FAILED"
+            echo "   ⏭️  Skipped: $SKIPPED"
+            echo "   📋 Total: $TOTAL"
+            echo ""
+            
+            if [ "$FAILED" -gt 0 ]; then
+              echo "❌ FAILED TESTS:"
+              cat test-results/ctrf-report.json | jq -r '
+                .results.tests[] | 
+                select(.status == "failed") | 
+                "   🔍 " + .name + " (" + (.duration | tostring) + "ms)"
+              '
+              echo ""
+            fi
+            
+            echo "=================================================================================="
+          else
+            echo "⚠️  No CTRF report found at test-results/ctrf-report.json"
+          fi
+
+      - name: 🤖 Generate AI Analysis
+        if: always()
+        run: |
+          if [ -f "test-results/ctrf-report.json" ]; then
+            echo "🤖 Generating AI analysis for nightly test results..."
+            npm run ai:report
+          else
+            echo "⚠️  No CTRF report found, skipping AI analysis"
+          fi
         continue-on-error: true
 
       - name: 📧 Send Failure Notification
@@ -99,14 +150,23 @@ jobs:
             }
         continue-on-error: true
 
-      - name: 📋 Upload Comprehensive Reports
+      - name: � Upload CTRF Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctrf-nightly-${{ matrix.browser }}-${{ matrix.environment }}
+          path: |
+            test-results/ctrf-report.json
+            ctrf/
+          retention-days: 30
+
+      - name: �📋 Upload Comprehensive Reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: nightly-reports-${{ matrix.browser }}-${{ matrix.environment }}
           path: |
             playwright-report/
-            ctrf/
             ai-reports/
             test-results/
           retention-days: 7
@@ -137,12 +197,24 @@ jobs:
           npx playwright test --project=chromium --grep="@performance"
         continue-on-error: true
 
-      - name: 📈 Upload Performance Reports
+      - name: � Generate Performance CTRF Summary
+        if: always()
+        run: |
+          if [ -f "test-results/ctrf-report.json" ]; then
+            echo "📈 Performance Test CTRF Summary"
+            npm run ctrf:summary
+          else
+            echo "⚠️  No performance test CTRF report found"
+          fi
+        continue-on-error: true
+
+      - name: �📈 Upload Performance Reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: performance-reports
           path: |
+            test-results/ctrf-report.json
             playwright-report/
             test-results/
           retention-days: 14
