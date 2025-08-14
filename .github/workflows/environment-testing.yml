@@ -26,8 +26,8 @@ on:
         type: choice
         options:
           - chromium
+          - chrome
           - firefox
-          - webkit
           - all
 
 permissions:
@@ -48,7 +48,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: ${{ fromJson(github.event.inputs.browsers == 'all' && '["chromium", "firefox", "webkit"]' || format('["{0}"]', github.event.inputs.browsers)) }}
+        browser: ${{ fromJson(github.event.inputs.browsers == 'all' && '["chromium", "chrome", "firefox"]' || format('["{0}"]', github.event.inputs.browsers)) }}
     
     steps:
       - name: 📥 Checkout code

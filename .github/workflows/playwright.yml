@@ -23,8 +23,8 @@ on:
         options:
           - all
           - chromium
+          - chrome
           - firefox
-          - webkit
       test_pattern:
         description: 'Test pattern to run (e.g., "*.spec.js" or specific test file)'
         required: false
@@ -123,7 +123,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: [chromium, firefox, webkit]
+        browser: [chromium, chrome, firefox]
     
     steps:
       - name: 📥 Checkout code
