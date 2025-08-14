@@ -1,5 +1,6 @@
 const {test, expect} = require('@playwright/test');
-test('Browser Context Playwright Tests', async({browser}) => {
+
+test('@smoke Browser Context Playwright Tests', async({browser}) => {
     const context = await browser.newContext();
     const page = await context.newPage();
     await page.goto('https://rahulshettyacademy.com/');
@@ -7,16 +8,23 @@ test('Browser Context Playwright Tests', async({browser}) => {
     await context.close();
 });
 
-test('Page Playwright Tests', async({page}) => {
+test('@critical @regression Page Playwright Tests', async({page}) => {
     const userName = page.locator('#userEmail');
     const userPassword = page.locator('#userPassword');
     await page.goto('https://rahulshettyacademy.com/client');
+    
+    // Wait for page to load completely
+    await page.waitForLoadState('networkidle');
+    
     // Debug: Current page title
     await expect(page).toHaveTitle("Let's Shop");
     
+    // Wait for login form to be ready
+    await userName.waitFor({ state: 'visible' });
+    await userPassword.waitFor({ state: 'visible' });
+    
     // Fill login form with valid test credentials
     await userName.fill('rahulshetty@gmail.com');
-    
     await userPassword.fill('Iamking@000');
     await page.click('#login');
     
