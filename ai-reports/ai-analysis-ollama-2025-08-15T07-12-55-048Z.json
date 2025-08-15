@@ -1,0 +1,68 @@
+{
+  "results": {
+    "tool": {
+      "name": "playwright"
+    },
+    "summary": {
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "pending": 0,
+      "skipped": 0,
+      "other": 0,
+      "start": 1755241855460,
+      "stop": 1755241871973,
+      "suites": 0
+    },
+    "tests": [
+      {
+        "name": "@smoke @regression Intentional Failure for AI Demo",
+        "status": "failed",
+        "duration": 12628,
+        "start": 1755241856,
+        "stop": 1755241868,
+        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mpage\u001b[39m\u001b[2m).\u001b[22mtoHaveTitle\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected string: \u001b[32m\"This title does not exist\"\u001b[39m\nReceived string: \u001b[31m\"Let's Shop\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveTitle\" with timeout 5000ms\u001b[22m\n\u001b[2m    9 × unexpected value \"Let's Shop\"\u001b[22m\n",
+        "trace": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mpage\u001b[39m\u001b[2m).\u001b[22mtoHaveTitle\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected string: \u001b[32m\"This title does not exist\"\u001b[39m\nReceived string: \u001b[31m\"Let's Shop\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveTitle\" with timeout 5000ms\u001b[22m\n\u001b[2m    9 × unexpected value \"Let's Shop\"\u001b[22m\n\n    at /Users/jonathan/sandbox/udemy-playwright-javascript-062125/tests/ai-demo.spec.js:17:28",
+        "snippet": "\u001b[0m \u001b[90m 15 |\u001b[39m         \u001b[90m// This will fail intentionally to test AI reporting system\u001b[39m\n \u001b[90m 16 |\u001b[39m         console\u001b[33m.\u001b[39mlog(\u001b[32m'🤖 AI DEMO: Testing intentional title mismatch for AI analysis'\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 17 |\u001b[39m         \u001b[36mawait\u001b[39m expect(page)\u001b[33m.\u001b[39mtoHaveTitle(\u001b[32m'This title does not exist'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                            \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 18 |\u001b[39m         \n \u001b[90m 19 |\u001b[39m         \u001b[90m// Additional failures for comprehensive AI analysis testing\u001b[39m\n \u001b[90m 20 |\u001b[39m         console\u001b[33m.\u001b[39mlog(\u001b[32m'🤖 AI DEMO: Testing invalid login credentials for AI analysis'\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m",
+        "rawStatus": "failed",
+        "tags": [
+          "@smoke",
+          "@regression"
+        ],
+        "type": "e2e",
+        "filePath": "/Users/jonathan/sandbox/udemy-playwright-javascript-062125/tests/ai-demo.spec.js",
+        "retries": 0,
+        "flaky": false,
+        "steps": [],
+        "suite": "chromium > ai-demo.spec.js > AI Demo Tests - Intentional Failures",
+        "attachments": [
+          {
+            "name": "error-context",
+            "contentType": "text/markdown",
+            "path": "/Users/jonathan/sandbox/udemy-playwright-javascript-062125/test-results/ai-demo-AI-Demo-Tests---In-23bc4-ntional-Failure-for-AI-Demo-chromium/error-context.md"
+          }
+        ],
+        "stdout": [
+          "🤖 AI DEMO: Testing intentional title mismatch for AI analysis\n"
+        ],
+        "stderr": [],
+        "extra": {
+          "annotations": [
+            {
+              "type": "fail",
+              "location": {
+                "file": "/Users/jonathan/sandbox/udemy-playwright-javascript-062125/tests/ai-demo.spec.js",
+                "line": 6,
+                "column": 14
+              }
+            },
+            {
+              "type": "intentional-failure",
+              "description": "This test is designed to fail to demonstrate AI failure analysis"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

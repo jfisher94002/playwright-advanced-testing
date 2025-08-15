@@ -2,8 +2,8 @@ const {test, expect} = require('@playwright/test');
 
 test.describe('AI Demo Tests - Intentional Failures', () => {
     test('@smoke @regression Intentional Failure for AI Demo', async({page}) => {
-        // Mark this test as expected to fail for AI reporting demo
-        test.fail(); // This tells Playwright this test is expected to fail
+        // This test is designed to fail to demonstrate AI failure analysis
+        // Removed test.fail() so it reports as actual failure for AI analysis
         
         test.info().annotations.push({
             type: 'intentional-failure',

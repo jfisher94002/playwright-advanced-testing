@@ -237,12 +237,17 @@ jobs:
           OPENAI_MODEL: ${{ secrets.OPENAI_MODEL || 'gpt-4o' }}
           OLLAMA_MODEL: ${{ secrets.OLLAMA_MODEL || 'llama3.2' }}
 
-      - name: 🧠 Enhanced AI-CTRF Analysis
+      - name: 🧠 Enhanced AI-CTRF Analysis with HTML Generation
         if: always() && steps.should-run.outputs.should_run == 'true' && github.event.inputs.skip_ai_analysis != 'true'
         run: |
           if [ -f "ctrf/test-results/ctrf-report.json" ]; then
-            echo "🚀 Running enhanced AI-CTRF analysis..."
-            npm run ai:smart
+            echo "🚀 Running enhanced AI-CTRF analysis with HTML generation..."
+            npm run ai:smart:html
+            
+            # List generated HTML reports
+            echo ""
+            echo "📄 Generated HTML Reports:"
+            ls -la ai-reports/*.html 2>/dev/null || echo "No HTML reports generated"
           else
             echo "⚠️  No CTRF report found for AI-CTRF analysis"
           fi
@@ -259,6 +264,28 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION || 'us-west-2' }}
+          
+      - name: 🌐 Generate Test Reports Dashboard
+        if: always() && steps.should-run.outputs.should_run == 'true'
+        run: |
+          echo "🌐 Generating test reports dashboard..."
+          npm run reports:dashboard
+          
+          # Show available reports
+          echo "📊 Available reports:"
+          ls -la ai-reports/ 2>/dev/null || echo "No AI reports found"
+          ls -la playwright-report/ 2>/dev/null || echo "No Playwright reports found"
+        continue-on-error: true
+        
+      - name: 🌐 Display HTML Reports in GitHub Actions
+        if: always() && steps.should-run.outputs.should_run == 'true'
+        run: |
+          # Use github-actions-ctrf for GitHub Actions summary display
+          if [ -f "ctrf/test-results/ctrf-report.json" ]; then
+            echo "📊 Generating GitHub Actions test summary..."
+            GITHUB_REPOSITORY="${{ github.repository }}" npx github-actions-ctrf ctrf/test-results/ctrf-report.json || echo "CTRF summary generation failed"
+          fi
+        continue-on-error: true
 
       - name: 📊 Display AI Insights Summary  
         if: always() && steps.should-run.outputs.should_run == 'true'
@@ -355,7 +382,7 @@ jobs:
             ai-reports/
           retention-days: 30
 
-      - name: 🧠 Upload AI-CTRF Enhanced Reports
+      - name: 🧠 Upload AI-CTRF Enhanced Reports (JSON & HTML)
         if: always() && steps.should-run.outputs.should_run == 'true'
         uses: actions/upload-artifact@v4
         with:
@@ -363,6 +390,17 @@ jobs:
           path: |
             ai-reports/
             ctrf/test-results/ctrf-report.json
+          retention-days: 30
+          
+      - name: 🌐 Upload HTML Reports for Easy Viewing
+        if: always() && steps.should-run.outputs.should_run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: html-reports-${{ matrix.browser }}
+          path: |
+            ai-reports/*.html
+            playwright-report/
+            test-reports-dashboard.html
           retention-days: 30
 
       - name: 📋 Upload Playwright Report

@@ -23,10 +23,13 @@ exports.default = (0, test_1.defineConfig)({
     workers: process.env.CI ? 1 : undefined,
     /* Reporter to use. See https://playwright.dev/docs/test-reporters */
     reporter: [
-        ['html'],
+        ['html', { 
+            open: 'never',
+            outputFolder: 'playwright-report'
+        }],
         ['playwright-ctrf-json-reporter', {
                 outputFile: 'ctrf-report.json',
-                outputDir: 'test-results',
+                outputDir: 'ctrf/test-results',
                 minimal: false,
                 testType: 'playwright',
                 appName: 'Udemy Playwright Tests',

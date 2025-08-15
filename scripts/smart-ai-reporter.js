@@ -165,14 +165,18 @@ function runAiAnalysis(provider, specificProvider = null) {
   
   try {
     const command = `${provider.command} ${CTRF_PATH} --model ${provider.model}`;
-    execSync(command, { stdio: 'inherit' });
+    
+    // Capture AI output for HTML generation
+    const aiOutput = execSync(command, { encoding: 'utf8' });
+    console.log(aiOutput); // Display in console as before
     
     console.log('─'.repeat(80));
     console.log(`✅ AI analysis completed successfully with ${provider.name}!`);
     
     // Save the enhanced report
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const outputFile = `ai-reports/ai-analysis-${provider.name}-${timestamp}.json`;
+    const jsonOutputFile = `ai-reports/ai-analysis-${provider.name}-${timestamp}.json`;
+    const htmlOutputFile = `ai-reports/ai-analysis-${provider.name}-${timestamp}.html`;
     
     // Create ai-reports directory if it doesn't exist
     const aiReportsDir = 'ai-reports';
@@ -180,10 +184,22 @@ function runAiAnalysis(provider, specificProvider = null) {
       fs.mkdirSync(aiReportsDir, { recursive: true });
     }
     
-    // Copy the enhanced CTRF report
+    // Copy the enhanced CTRF report (JSON)
     if (fs.existsSync(CTRF_PATH)) {
-      fs.copyFileSync(CTRF_PATH, outputFile);
-      console.log(`📁 Enhanced report saved to: ${outputFile}`);
+      fs.copyFileSync(CTRF_PATH, jsonOutputFile);
+      console.log(`📁 Enhanced JSON report saved to: ${jsonOutputFile}`);
+    }
+    
+    // Generate HTML report
+    try {
+      const HTMLAIReporter = require('./html-ai-reporter.js');
+      const htmlReporter = new HTMLAIReporter();
+      const ctrfData = JSON.parse(fs.readFileSync(CTRF_PATH, 'utf8'));
+      
+      htmlReporter.generateReport(ctrfData, aiOutput, provider.name, htmlOutputFile);
+      console.log(`🌐 HTML report generated: ${htmlOutputFile}`);
+    } catch (htmlError) {
+      console.warn(`⚠️  HTML generation failed: ${htmlError.message}`);
     }
     
   } catch (error) {
