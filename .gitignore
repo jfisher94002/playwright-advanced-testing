@@ -13,7 +13,10 @@ yarn-error.log*
 
 # AI Test Reports
 ai-test-report-*.html
+ai-reports/
 ctrf-reports/
+ctrf/test-results/
+test-reports-dashboard.html
 
 # Screenshots from failed tests
 *.png
