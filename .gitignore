@@ -37,6 +37,18 @@ dist/
 .DS_Store
 *.zip
 
+# Generated documentation (except README.md and core docs)
+IMPLEMENTATION-*.md
+QUICK-REFERENCE*.md
+CONSOLIDATED-*.md
+MANUAL_TESTING_*.md
+PROJECT_STATUS*.md
+README-NEW*.md
+SDET-*.md
+SENIOR-SDET-*.md
+docs/HTML_REPORTING.md
+*-COMPLETE.md
+
 # Logs
 logs
 *.log
